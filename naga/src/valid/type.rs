@@ -355,18 +355,7 @@ impl super::Validator {
                     | crate::ScalarKind::Float
                     | crate::ScalarKind::AbstractInt
                     | crate::ScalarKind::AbstractFloat => false,
-                    crate::ScalarKind::Sint | crate::ScalarKind::Uint => {
-                        if width == 4 {
-                            true
-                        } else if width == 8 {
-                            self.require_type_capability(
-                                Capabilities::SHADER_I64 | Capabilities::SHADER_I64_TEXTURE_ATOMIC,
-                            )?;
-                            true
-                        } else {
-                            false
-                        }
-                    }
+                    crate::ScalarKind::Sint | crate::ScalarKind::Uint => width == 4,
                 };
                 if !good {
                     return Err(TypeError::InvalidAtomicWidth(kind, width));

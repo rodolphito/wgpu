@@ -333,33 +333,11 @@ impl super::Validator {
         value: Handle<crate::Expression>,
         result: Handle<crate::Expression>,
         context: &BlockContext,
-        stages: &mut ShaderStages,
     ) -> Result<(), WithSpan<FunctionError>> {
         let pointer_inner = context.resolve_type(pointer, &self.valid_expression_set)?;
         let ptr_scalar = match *pointer_inner {
             crate::TypeInner::Pointer { base, .. } => match context.types[base].inner {
                 crate::TypeInner::Atomic(scalar) => scalar,
-                crate::TypeInner::Image {
-                    class:
-                        ImageClass::Storage {
-                            format,
-                            access: StorageAccess::STORE,
-                        },
-                    ..
-                } if todo!("Validate format is R64Uint/R64Sint") => {
-                    if !self
-                        .capabilities
-                        .contains(Capabilities::SHADER_I64_TEXTURE_ATOMIC)
-                    {
-                        return Err(AtomicError::MissingTextureCapability
-                            .with_span_handle(pointer, context.expressions)
-                            .into_other());
-                    }
-
-                    *stages &= super::ShaderStages::COMPUTE;
-
-                    todo!("Match format")
-                }
                 ref other => {
                     log::error!("Atomic pointer to type {:?}", other);
                     return Err(AtomicError::InvalidPointer(pointer)

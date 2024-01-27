@@ -486,11 +486,6 @@ impl PhysicalDeviceFeatures {
         features.set(F::SHADER_I64, self.core.shader_int64 != 0);
         features.set(F::SHADER_I16, self.core.shader_int16 != 0);
 
-        features.set(
-            F::SHADER_I64_TEXTURE_ATOMIC,
-            caps.supports_extension(vk::ExtShaderImageAtomicInt64Fn::name()),
-        );
-
         //if caps.supports_extension(vk::KhrSamplerMirrorClampToEdgeFn::name()) {
         //if caps.supports_extension(vk::ExtSamplerFilterMinmaxFn::name()) {
         features.set(
@@ -825,11 +820,6 @@ impl PhysicalDeviceCapabilities {
         // Require `VK_EXT_texture_compression_astc_hdr` if the associated feature was requested
         if requested_features.contains(wgt::Features::TEXTURE_COMPRESSION_ASTC_HDR) {
             extensions.push(vk::ExtTextureCompressionAstcHdrFn::name());
-        }
-
-        // Require `VK_EXT_shader_image_atomic_int64` if the associated feature was requested
-        if requested_features.contains(wgt::Features::SHADER_I64_TEXTURE_ATOMIC) {
-            extensions.push(vk::ExtShaderImageAtomicInt64Fn::name());
         }
 
         extensions
@@ -1471,11 +1461,6 @@ impl super::Adapter {
 
             if features.contains(wgt::Features::SHADER_I64) {
                 capabilities.push(spv::Capability::Int64);
-            }
-
-            if features.contains(wgt::Features::SHADER_I64_TEXTURE_ATOMIC) {
-                capabilities.push(spv::Capability::Int64ImageEXT);
-                capabilities.push(spv::Capability::Int64Atomics);
             }
 
             let mut flags = spv::WriterFlags::empty();

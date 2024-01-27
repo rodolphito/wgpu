@@ -862,17 +862,6 @@ bitflags::bitflags! {
         ///
         /// This is a native only feature.
         const SHADER_I64 = 1 << 64;
-
-        /// Allows compute shaders to use atomic operations on R64Sint and R64Uint read_write storage textures.
-        ///
-        /// Requires SHADER_I64 and [`Dx12Compiler::Dxc`].
-        ///
-        /// Supported platforms:
-        /// - Vulkan (with VK_EXT_shader_image_atomic_int64)
-        /// - DX12 (with Shader Model 6.6 and AtomicInt64OnTypedResourceSupported)
-        ///
-        /// This is a native only feature.
-        const SHADER_I64_TEXTURE_ATOMIC = 1 << 65;
     }
 }
 
