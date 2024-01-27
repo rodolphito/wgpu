@@ -314,7 +314,7 @@ bitflags::bitflags! {
         /// This is a web and native feature.
         const SHADER_F16 = 1 << 8;
 
-        // 11..14 available
+        // 9..14 available
 
         // Texture Formats:
 

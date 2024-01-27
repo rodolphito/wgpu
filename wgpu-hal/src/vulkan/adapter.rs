@@ -41,7 +41,6 @@ pub struct PhysicalDeviceFeatures {
     ray_query: Option<vk::PhysicalDeviceRayQueryFeaturesKHR>,
     zero_initialize_workgroup_memory:
         Option<vk::PhysicalDeviceZeroInitializeWorkgroupMemoryFeatures>,
-    shader_image_atomic_int64: Option<vk::PhysicalDeviceShaderImageAtomicInt64FeaturesEXT>,
 }
 
 // This is safe because the structs have `p_next: *mut c_void`, which we null out/never read.
@@ -87,9 +86,6 @@ impl PhysicalDeviceFeatures {
             info = info.push_next(feature);
         }
         if let Some(ref mut feature) = self.ray_query {
-            info = info.push_next(feature);
-        }
-        if let Some(ref mut feature) = self.shader_image_atomic_int64 {
             info = info.push_next(feature);
         }
         info
@@ -350,17 +346,6 @@ impl PhysicalDeviceFeatures {
                         .shader_zero_initialize_workgroup_memory(
                             private_caps.zero_initialize_workgroup_memory,
                         )
-                        .build(),
-                )
-            } else {
-                None
-            },
-            shader_image_atomic_int64: if device_api_version >= vk::API_VERSION_1_1
-                || enabled_extensions.contains(&vk::KhrGetPhysicalDeviceProperties2Fn::name())
-            {
-                Some(
-                    vk::PhysicalDeviceShaderImageAtomicInt64FeaturesEXT::builder()
-                        .shader_image_int64_atomics(true)
                         .build(),
                 )
             } else {

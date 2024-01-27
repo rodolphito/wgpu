@@ -1,12 +1,11 @@
 use super::validate_atomic_compare_exchange_struct;
 use super::{
     analyzer::{UniformityDisruptor, UniformityRequirements},
-    Capabilities, ExpressionError, FunctionInfo, ModuleInfo, ShaderStages,
+    ExpressionError, FunctionInfo, ModuleInfo,
 };
 use crate::arena::{Arena, Handle, UniqueArena};
 use crate::span::WithSpan;
 use crate::span::{AddSpan as _, MapErrWithSpan as _};
-use crate::{ImageClass, StorageAccess};
 
 use bit_set::BitSet;
 
@@ -43,8 +42,6 @@ pub enum AtomicError {
     InvalidOperand(Handle<crate::Expression>),
     #[error("Result type for {0:?} doesn't match the statement")]
     ResultTypeMismatch(Handle<crate::Expression>),
-    #[error("TODO")]
-    MissingTextureCapability,
 }
 
 #[derive(Clone, Debug, thiserror::Error)]
@@ -815,7 +812,7 @@ impl super::Validator {
                     value,
                     result,
                 } => {
-                    self.validate_atomic(pointer, fun, value, result, context, &mut stages)?;
+                    self.validate_atomic(pointer, fun, value, result, context)?;
                 }
                 S::WorkGroupUniformLoad { pointer, result } => {
                     stages &= super::ShaderStages::COMPUTE;
