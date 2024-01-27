@@ -26,6 +26,10 @@ pub(crate) struct LateSizedBufferGroup {
 pub enum ShaderModuleSource<'a> {
     #[cfg(feature = "wgsl")]
     Wgsl(Cow<'a, str>),
+    #[cfg(feature = "glsl")]
+    Glsl(Cow<'a, str>, naga::front::glsl::Options),
+    #[cfg(feature = "spirv")]
+    SpirV(Cow<'a, [u32]>, naga::front::spv::Options),
     Naga(Cow<'static, naga::Module>),
     /// Dummy variant because `Naga` doesn't have a lifetime and without enough active features it
     /// could be the last one active.
@@ -103,6 +107,22 @@ impl fmt::Display for ShaderError<naga::front::wgsl::ParseError> {
         write!(f, "\nShader '{label}' parsing {string}")
     }
 }
+#[cfg(feature = "glsl")]
+impl fmt::Display for ShaderError<naga::front::glsl::ParseError> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let label = self.label.as_deref().unwrap_or_default();
+        let string = self.inner.emit_to_string(&self.source);
+        write!(f, "\nShader '{label}' parsing {string}")
+    }
+}
+#[cfg(feature = "spirv")]
+impl fmt::Display for ShaderError<naga::front::spv::Error> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let label = self.label.as_deref().unwrap_or_default();
+        let string = self.inner.emit_to_string(&self.source);
+        write!(f, "\nShader '{label}' parsing {string}")
+    }
+}
 impl fmt::Display for ShaderError<naga::WithSpan<naga::valid::ValidationError>> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         use codespan_reporting::{
@@ -151,6 +171,12 @@ pub enum CreateShaderModuleError {
     #[cfg(feature = "wgsl")]
     #[error(transparent)]
     Parsing(#[from] ShaderError<naga::front::wgsl::ParseError>),
+    #[cfg(feature = "glsl")]
+    #[error(transparent)]
+    ParsingGlsl(#[from] ShaderError<naga::front::glsl::ParseError>),
+    #[cfg(feature = "spirv")]
+    #[error(transparent)]
+    ParsingSpirV(#[from] ShaderError<naga::front::spv::Error>),
     #[error("Failed to generate the backend-specific code")]
     Generation,
     #[error(transparent)]
@@ -467,6 +493,9 @@ pub struct VertexStep {
     /// The byte stride in the buffer between one attribute value and the next.
     pub stride: wgt::BufferAddress,
 
+    /// The byte size required to fit the last vertex in the stream.
+    pub last_stride: wgt::BufferAddress,
+
     /// Whether the buffer is indexed by vertex number or instance number.
     pub mode: wgt::VertexStepMode,
 }
@@ -475,6 +504,7 @@ impl Default for VertexStep {
     fn default() -> Self {
         Self {
             stride: 0,
+            last_stride: 0,
             mode: wgt::VertexStepMode::Vertex,
         }
     }
