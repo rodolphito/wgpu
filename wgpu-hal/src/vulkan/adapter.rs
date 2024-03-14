@@ -101,7 +101,7 @@ pub struct PhysicalDeviceFeatures {
     /// to Vulkan 1.3.
     zero_initialize_workgroup_memory:
         Option<vk::PhysicalDeviceZeroInitializeWorkgroupMemoryFeatures>,
-    shader_int64_atomic: Option<vk::PhysicalDeviceShaderImageAtomicInt64FeaturesEXT>,
+    shader_int64_atomic: Option<vk::PhysicalDeviceShaderAtomicInt64Features>,
 }
 
 // This is safe because the structs have `p_next: *mut c_void`, which we null out/never read.
@@ -442,8 +442,8 @@ impl PhysicalDeviceFeatures {
                 || enabled_extensions.contains(&vk::KhrGetPhysicalDeviceProperties2Fn::name())
             {
                 Some(
-                    vk::PhysicalDeviceShaderImageAtomicInt64FeaturesEXT::builder()
-                        .shader_image_int64_atomics(true)
+                    vk::PhysicalDeviceShaderAtomicInt64Features::builder()
+                        .shader_buffer_int64_atomics(true)
                         .build(),
                 )
             } else {
@@ -1625,7 +1625,6 @@ impl super::Adapter {
             }
 
             if features.contains(wgt::Features::SHADER_INT64_ATOMIC) {
-                capabilities.push(spv::Capability::Int64ImageEXT);
                 capabilities.push(spv::Capability::Int64Atomics);
             }
 
