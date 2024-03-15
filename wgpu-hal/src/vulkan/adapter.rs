@@ -577,7 +577,7 @@ impl PhysicalDeviceFeatures {
 
         features.set(
             F::SHADER_INT64_ATOMIC,
-            caps.supports_extension(vk::ExtShaderImageAtomicInt64Fn::name()),
+            caps.supports_extension(vk::KhrShaderAtomicInt64Fn::name()),
         );
 
         //if caps.supports_extension(vk::KhrSamplerMirrorClampToEdgeFn::name()) {
@@ -955,7 +955,7 @@ impl PhysicalDeviceProperties {
 
         // Require `VK_EXT_shader_image_atomic_int64` if the associated feature was requested
         if requested_features.contains(wgt::Features::SHADER_INT64_ATOMIC) {
-            extensions.push(vk::ExtShaderImageAtomicInt64Fn::name());
+            extensions.push(vk::KhrShaderAtomicInt64Fn::name());
         }
 
         extensions
