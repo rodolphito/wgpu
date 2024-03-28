@@ -186,7 +186,11 @@ impl super::Adapter {
                 unsafe { mem::zeroed() };
             let hr = unsafe {
                 device.CheckFeatureSupport(
+<<<<<<< HEAD
                     7, // D3D12_FEATURE_SHADER_MODEL
+=======
+                    37, // D3D12_FEATURE_D3D12_OPTIONS9
+>>>>>>> 94eff9ce6 (Check dx shadermodel version)
                     &mut sm as *mut _ as *mut _,
                     mem::size_of::<crate::dx12::types::D3D12_FEATURE_DATA_SHADER_MODEL>() as _,
                 )
