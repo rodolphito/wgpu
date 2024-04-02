@@ -111,7 +111,9 @@ bitflags::bitflags! {
         /// Support for 64-bit signed and unsigned integers.
         const SHADER_INT64 = 0x8000;
         /// Support for 64-bit integer atomics.
-        const SHADER_INT64_ATOMIC = 0x10000;
+        const SHADER_INT64_ATOMIC_MIN_MAX = 0x10000;
+        /// Support for 64-bit integer atomics.
+        const SHADER_INT64_ATOMIC_ALL_OPS = 0x20000;
     }
 }
 

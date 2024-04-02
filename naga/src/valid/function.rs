@@ -45,6 +45,8 @@ pub enum AtomicError {
     InvalidOperand(Handle<crate::Expression>),
     #[error("Result type for {0:?} doesn't match the statement")]
     ResultTypeMismatch(Handle<crate::Expression>),
+    #[error("Capability {1:?} is required to use {0:?}")]
+    MissingCapabilities(crate::AtomicFunction, super::Capabilities),
 }
 
 #[derive(Clone, Debug, thiserror::Error)]
@@ -355,7 +357,40 @@ impl super::Validator {
 
         let value_inner = context.resolve_type(value, &self.valid_expression_set)?;
         match *value_inner {
-            crate::TypeInner::Scalar(scalar) if scalar == ptr_scalar => {}
+            crate::TypeInner::Scalar(scalar) if scalar == ptr_scalar => {
+                if scalar.width == 8 {
+                    match *fun {
+                        crate::AtomicFunction::Min | crate::AtomicFunction::Max => {
+                            if !self
+                                .capabilities
+                                .contains(super::Capabilities::SHADER_INT64_ATOMIC_MIN_MAX)
+                            {
+                                log::error!("Int64 atomic min/max is not supported");
+                                return Err(AtomicError::MissingCapabilities(
+                                    *fun,
+                                    super::Capabilities::SHADER_INT64_ATOMIC_MIN_MAX,
+                                )
+                                .with_span_handle(value, context.expressions)
+                                .into_other());
+                            }
+                        }
+                        _ => {
+                            if !self
+                                .capabilities
+                                .contains(super::Capabilities::SHADER_INT64_ATOMIC_ALL_OPS)
+                            {
+                                log::error!("Int64 atomic operations are not supported");
+                                return Err(AtomicError::MissingCapabilities(
+                                    *fun,
+                                    super::Capabilities::SHADER_INT64_ATOMIC_ALL_OPS,
+                                )
+                                .with_span_handle(value, context.expressions)
+                                .into_other());
+                            }
+                        }
+                    }
+                }
+            }
             ref other => {
                 log::error!("Atomic operand type {:?}", other);
                 return Err(AtomicError::InvalidOperand(value)

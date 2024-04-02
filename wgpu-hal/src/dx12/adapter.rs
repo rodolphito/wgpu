@@ -356,7 +356,7 @@ impl super::Adapter {
             hr == 0 && features9.AtomicInt64OnGroupSharedSupported != 0
         };
         features.set(
-            wgt::Features::SHADER_INT64_ATOMIC,
+            wgt::Features::SHADER_INT64_ATOMIC_ALL_OPS | wgt::Features::SHADER_INT64_ATOMIC_MIN_MAX,
             atomic_int64_on_typed_resource_supported,
         );
 
