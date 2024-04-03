@@ -41,6 +41,8 @@ pub enum CallError {
 pub enum AtomicError {
     #[error("Pointer {0:?} to atomic is invalid.")]
     InvalidPointer(Handle<crate::Expression>),
+    #[error("Address space {0:?} does not support 64bit atomics.")]
+    InvalidAddressSpace(crate::AddressSpace),
     #[error("Operand {0:?} has invalid type.")]
     InvalidOperand(Handle<crate::Expression>),
     #[error("Result type for {0:?} doesn't match the statement")]
@@ -424,8 +426,32 @@ impl super::Validator {
     ) -> Result<(), WithSpan<FunctionError>> {
         let pointer_inner = context.resolve_type(pointer, &self.valid_expression_set)?;
         let ptr_scalar = match *pointer_inner {
-            crate::TypeInner::Pointer { base, .. } => match context.types[base].inner {
-                crate::TypeInner::Atomic(scalar) => scalar,
+            crate::TypeInner::Pointer { base, space } => match context.types[base].inner {
+                crate::TypeInner::Atomic(scalar) => match space {
+                    crate::AddressSpace::Function
+                    | crate::AddressSpace::Private
+                    | crate::AddressSpace::WorkGroup => {
+                        if self
+                            .capabilities
+                            .contains(crate::valid::Capabilities::SHADER_INT64_ATOMIC_ALL_OPS)
+                        {
+                            scalar
+                        } else {
+                            // Metal does not support atomics on non-device space pointers. Other platforms can just use normal atomics with returns.
+                            log::error!(
+                                "64 bit atomic no-return function on an invalid address-space {:?}",
+                                space
+                            );
+                            return Err(AtomicError::InvalidAddressSpace(space)
+                                .with_span_handle(pointer, context.expressions)
+                                .into_other());
+                        }
+                    }
+                    crate::AddressSpace::Uniform
+                    | crate::AddressSpace::Storage { .. }
+                    | crate::AddressSpace::Handle
+                    | crate::AddressSpace::PushConstant => scalar,
+                },
                 ref other => {
                     log::error!("Atomic pointer to type {:?}", other);
                     return Err(AtomicError::InvalidPointer(pointer)
