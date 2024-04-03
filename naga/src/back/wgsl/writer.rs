@@ -594,7 +594,7 @@ impl<W: Write> Writer<W> {
                 write!(self.out, ">")?;
             }
             TypeInner::AccelerationStructure => write!(self.out, "acceleration_structure")?,
-            TypeInner::Struct { .. } | TypeInner::RayQuery => {
+            _ => {
                 return Err(Error::Unimplemented(format!("write_value_type {inner:?}")));
             }
         }
