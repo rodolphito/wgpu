@@ -3813,6 +3813,7 @@ impl<I: Iterator<Item = u32>> Frontend<I> {
                 | S::Store { .. }
                 | S::ImageStore { .. }
                 | S::Atomic { .. }
+                | S::AtomicNoReturn { .. }
                 | S::RayQuery { .. } => {}
                 S::Call {
                     function: ref mut callee,

@@ -34,22 +34,22 @@ kernel void cs_main(
         }
     }
     metal::threadgroup_barrier(metal::mem_flags::mem_threadgroup);
-    ulong _e3 = metal::atomic_max_explicit(&storage_atomic_scalar, 1uL, metal::memory_order_relaxed);
-    ulong _e7 = metal::atomic_max_explicit(&storage_atomic_arr.inner[1], 1uL, metal::memory_order_relaxed);
-    ulong _e11 = metal::atomic_max_explicit(&storage_struct.atomic_scalar, 1uL, metal::memory_order_relaxed);
-    ulong _e16 = metal::atomic_max_explicit(&storage_struct.atomic_arr.inner[1], 1uL, metal::memory_order_relaxed);
-    ulong _e19 = metal::atomic_max_explicit(&workgroup_atomic_scalar, 1uL, metal::memory_order_relaxed);
-    ulong _e23 = metal::atomic_max_explicit(&workgroup_atomic_arr.inner[1], 1uL, metal::memory_order_relaxed);
-    ulong _e27 = metal::atomic_max_explicit(&workgroup_struct.atomic_scalar, 1uL, metal::memory_order_relaxed);
-    ulong _e32 = metal::atomic_max_explicit(&workgroup_struct.atomic_arr.inner[1], 1uL, metal::memory_order_relaxed);
+    metal::atomic_max_explicit(&storage_atomic_scalar, 1uL, metal::memory_order_relaxed);
+    metal::atomic_max_explicit(&storage_atomic_arr.inner[1], 1uL, metal::memory_order_relaxed);
+    metal::atomic_max_explicit(&storage_struct.atomic_scalar, 1uL, metal::memory_order_relaxed);
+    metal::atomic_max_explicit(&storage_struct.atomic_arr.inner[1], 1uL, metal::memory_order_relaxed);
+    metal::atomic_max_explicit(&workgroup_atomic_scalar, 1uL, metal::memory_order_relaxed);
+    metal::atomic_max_explicit(&workgroup_atomic_arr.inner[1], 1uL, metal::memory_order_relaxed);
+    metal::atomic_max_explicit(&workgroup_struct.atomic_scalar, 1uL, metal::memory_order_relaxed);
+    metal::atomic_max_explicit(&workgroup_struct.atomic_arr.inner[1], 1uL, metal::memory_order_relaxed);
     metal::threadgroup_barrier(metal::mem_flags::mem_threadgroup);
-    ulong _e35 = metal::atomic_min_explicit(&storage_atomic_scalar, 1uL, metal::memory_order_relaxed);
-    ulong _e39 = metal::atomic_min_explicit(&storage_atomic_arr.inner[1], 1uL, metal::memory_order_relaxed);
-    ulong _e43 = metal::atomic_min_explicit(&storage_struct.atomic_scalar, 1uL, metal::memory_order_relaxed);
-    ulong _e48 = metal::atomic_min_explicit(&storage_struct.atomic_arr.inner[1], 1uL, metal::memory_order_relaxed);
-    ulong _e51 = metal::atomic_min_explicit(&workgroup_atomic_scalar, 1uL, metal::memory_order_relaxed);
-    ulong _e55 = metal::atomic_min_explicit(&workgroup_atomic_arr.inner[1], 1uL, metal::memory_order_relaxed);
-    ulong _e59 = metal::atomic_min_explicit(&workgroup_struct.atomic_scalar, 1uL, metal::memory_order_relaxed);
-    ulong _e64 = metal::atomic_min_explicit(&workgroup_struct.atomic_arr.inner[1], 1uL, metal::memory_order_relaxed);
+    metal::atomic_min_explicit(&storage_atomic_scalar, 1uL, metal::memory_order_relaxed);
+    metal::atomic_min_explicit(&storage_atomic_arr.inner[1], 1uL, metal::memory_order_relaxed);
+    metal::atomic_min_explicit(&storage_struct.atomic_scalar, 1uL, metal::memory_order_relaxed);
+    metal::atomic_min_explicit(&storage_struct.atomic_arr.inner[1], 1uL, metal::memory_order_relaxed);
+    metal::atomic_min_explicit(&workgroup_atomic_scalar, 1uL, metal::memory_order_relaxed);
+    metal::atomic_min_explicit(&workgroup_atomic_arr.inner[1], 1uL, metal::memory_order_relaxed);
+    metal::atomic_min_explicit(&workgroup_struct.atomic_scalar, 1uL, metal::memory_order_relaxed);
+    metal::atomic_min_explicit(&workgroup_struct.atomic_arr.inner[1], 1uL, metal::memory_order_relaxed);
     return;
 }

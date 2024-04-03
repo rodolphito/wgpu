@@ -2446,6 +2446,84 @@ impl<'w> BlockContext<'w> {
 
                     block.body.push(instruction);
                 }
+                crate::Statement::AtomicNoReturn {
+                    pointer,
+                    ref fun,
+                    value,
+                } => {
+                    let id = self.gen_id();
+                    let result_type_id = self.get_expression_type_id(&self.fun_info[value].ty);
+
+                    let pointer_id =
+                        match self.write_expression_pointer(pointer, &mut block, None)? {
+                            ExpressionPointer::Ready { pointer_id } => pointer_id,
+                            ExpressionPointer::Conditional { .. } => {
+                                return Err(Error::FeatureNotImplemented(
+                                    "Atomics out-of-bounds handling",
+                                ));
+                            }
+                        };
+
+                    let space = self.fun_info[pointer]
+                        .ty
+                        .inner_with(&self.ir_module.types)
+                        .pointer_space()
+                        .unwrap();
+                    let (semantics, scope) = space.to_spirv_semantics_and_scope();
+                    let scope_constant_id = self.get_scope_constant(scope as u32);
+                    let semantics_id = self.get_index_constant(semantics.bits());
+                    let value_id = self.cached[value];
+                    let value_inner = self.fun_info[value].ty.inner_with(&self.ir_module.types);
+
+                    let instruction = match *fun {
+                        crate::AtomicFunctionNoReturn::Min => {
+                            let spirv_op = match *value_inner {
+                                crate::TypeInner::Scalar(crate::Scalar {
+                                    kind: crate::ScalarKind::Sint,
+                                    width: _,
+                                }) => spirv::Op::AtomicSMin,
+                                crate::TypeInner::Scalar(crate::Scalar {
+                                    kind: crate::ScalarKind::Uint,
+                                    width: _,
+                                }) => spirv::Op::AtomicUMin,
+                                _ => unimplemented!(),
+                            };
+                            Instruction::atomic_binary(
+                                spirv_op,
+                                result_type_id,
+                                id,
+                                pointer_id,
+                                scope_constant_id,
+                                semantics_id,
+                                value_id,
+                            )
+                        }
+                        crate::AtomicFunctionNoReturn::Max => {
+                            let spirv_op = match *value_inner {
+                                crate::TypeInner::Scalar(crate::Scalar {
+                                    kind: crate::ScalarKind::Sint,
+                                    width: _,
+                                }) => spirv::Op::AtomicSMax,
+                                crate::TypeInner::Scalar(crate::Scalar {
+                                    kind: crate::ScalarKind::Uint,
+                                    width: _,
+                                }) => spirv::Op::AtomicUMax,
+                                _ => unimplemented!(),
+                            };
+                            Instruction::atomic_binary(
+                                spirv_op,
+                                result_type_id,
+                                id,
+                                pointer_id,
+                                scope_constant_id,
+                                semantics_id,
+                                value_id,
+                            )
+                        }
+                    };
+
+                    block.body.push(instruction);
+                }
                 crate::Statement::WorkGroupUniformLoad { pointer, result } => {
                     self.writer
                         .write_barrier(crate::Barrier::WORK_GROUP, &mut block);

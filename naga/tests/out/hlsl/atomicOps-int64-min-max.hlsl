@@ -26,22 +26,22 @@ void cs_main(uint3 id : SV_GroupThreadID, uint3 __local_invocation_id : SV_Group
         workgroup_struct = (Struct)0;
     }
     GroupMemoryBarrierWithGroupSync();
-    uint64_t _e3; storage_atomic_scalar.InterlockedMax(0, 1uL, _e3);
-    uint64_t _e7; storage_atomic_arr.InterlockedMax(8, 1uL, _e7);
-    uint64_t _e11; storage_struct.InterlockedMax(0, 1uL, _e11);
-    uint64_t _e16; storage_struct.InterlockedMax(8+8, 1uL, _e16);
-    uint64_t _e19; InterlockedMax(workgroup_atomic_scalar, 1uL, _e19);
-    uint64_t _e23; InterlockedMax(workgroup_atomic_arr[1], 1uL, _e23);
-    uint64_t _e27; InterlockedMax(workgroup_struct.atomic_scalar, 1uL, _e27);
-    uint64_t _e32; InterlockedMax(workgroup_struct.atomic_arr[1], 1uL, _e32);
+    uint64_t _e_discard; storage_atomic_scalar.InterlockedMax(0, 1uL, _e_discard);
+    uint64_t _e_discard; storage_atomic_arr.InterlockedMax(8, 1uL, _e_discard);
+    uint64_t _e_discard; storage_struct.InterlockedMax(0, 1uL, _e_discard);
+    uint64_t _e_discard; storage_struct.InterlockedMax(8+8, 1uL, _e_discard);
+    uint64_t _e_discard; InterlockedMax(workgroup_atomic_scalar, 1uL, _e_discard);
+    uint64_t _e_discard; InterlockedMax(workgroup_atomic_arr[1], 1uL, _e_discard);
+    uint64_t _e_discard; InterlockedMax(workgroup_struct.atomic_scalar, 1uL, _e_discard);
+    uint64_t _e_discard; InterlockedMax(workgroup_struct.atomic_arr[1], 1uL, _e_discard);
     GroupMemoryBarrierWithGroupSync();
-    uint64_t _e35; storage_atomic_scalar.InterlockedMin(0, 1uL, _e35);
-    uint64_t _e39; storage_atomic_arr.InterlockedMin(8, 1uL, _e39);
-    uint64_t _e43; storage_struct.InterlockedMin(0, 1uL, _e43);
-    uint64_t _e48; storage_struct.InterlockedMin(8+8, 1uL, _e48);
-    uint64_t _e51; InterlockedMin(workgroup_atomic_scalar, 1uL, _e51);
-    uint64_t _e55; InterlockedMin(workgroup_atomic_arr[1], 1uL, _e55);
-    uint64_t _e59; InterlockedMin(workgroup_struct.atomic_scalar, 1uL, _e59);
-    uint64_t _e64; InterlockedMin(workgroup_struct.atomic_arr[1], 1uL, _e64);
+    uint64_t _e_discard; storage_atomic_scalar.InterlockedMin(0, 1uL, _e_discard);
+    uint64_t _e_discard; storage_atomic_arr.InterlockedMin(8, 1uL, _e_discard);
+    uint64_t _e_discard; storage_struct.InterlockedMin(0, 1uL, _e_discard);
+    uint64_t _e_discard; storage_struct.InterlockedMin(8+8, 1uL, _e_discard);
+    uint64_t _e_discard; InterlockedMin(workgroup_atomic_scalar, 1uL, _e_discard);
+    uint64_t _e_discard; InterlockedMin(workgroup_atomic_arr[1], 1uL, _e_discard);
+    uint64_t _e_discard; InterlockedMin(workgroup_struct.atomic_scalar, 1uL, _e_discard);
+    uint64_t _e_discard; InterlockedMin(workgroup_struct.atomic_arr[1], 1uL, _e_discard);
     return;
 }

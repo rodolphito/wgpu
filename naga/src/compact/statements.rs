@@ -77,6 +77,14 @@ impl FunctionTracer<'_> {
                         self.expressions_used.insert(value);
                         self.expressions_used.insert(result);
                     }
+                    St::AtomicNoReturn {
+                        pointer,
+                        fun: _,
+                        value,
+                    } => {
+                        self.expressions_used.insert(pointer);
+                        self.expressions_used.insert(value);
+                    }
                     St::WorkGroupUniformLoad { pointer, result } => {
                         self.expressions_used.insert(pointer);
                         self.expressions_used.insert(result);
@@ -223,6 +231,14 @@ impl FunctionMap {
                         self.adjust_atomic_function(fun);
                         adjust(value);
                         adjust(result);
+                    }
+                    St::AtomicNoReturn {
+                        ref mut pointer,
+                        fun: _,
+                        ref mut value,
+                    } => {
+                        adjust(pointer);
+                        adjust(value);
                     }
                     St::WorkGroupUniformLoad {
                         ref mut pointer,

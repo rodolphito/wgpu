@@ -90,34 +90,34 @@ OpBranch %47
 OpControlBarrier %5 %5 %49
 OpBranch %50
 %50 = OpLabel
-%51 = OpAtomicUMax  %3  %32 %52 %54 %37
+%51 = OpAtomicUMax  %30  %32 %52 %54 %37
 %57 = OpAccessChain  %30  %34 %56
-%55 = OpAtomicUMax  %3  %57 %52 %54 %37
+%55 = OpAtomicUMax  %30  %57 %52 %54 %37
 %59 = OpAccessChain  %30  %36 %31
-%58 = OpAtomicUMax  %3  %59 %52 %54 %37
+%58 = OpAtomicUMax  %30  %59 %52 %54 %37
 %61 = OpAccessChain  %30  %36 %56 %56
-%60 = OpAtomicUMax  %3  %61 %52 %54 %37
-%62 = OpAtomicUMax  %3  %18 %63 %64 %37
+%60 = OpAtomicUMax  %30  %61 %52 %54 %37
+%62 = OpAtomicUMax  %19  %18 %63 %64 %37
 %66 = OpAccessChain  %19  %20 %56
-%65 = OpAtomicUMax  %3  %66 %63 %64 %37
+%65 = OpAtomicUMax  %19  %66 %63 %64 %37
 %68 = OpAccessChain  %19  %22 %31
-%67 = OpAtomicUMax  %3  %68 %63 %64 %37
+%67 = OpAtomicUMax  %19  %68 %63 %64 %37
 %70 = OpAccessChain  %19  %22 %56 %56
-%69 = OpAtomicUMax  %3  %70 %63 %64 %37
+%69 = OpAtomicUMax  %19  %70 %63 %64 %37
 OpControlBarrier %5 %5 %49
-%71 = OpAtomicUMin  %3  %32 %52 %54 %37
+%71 = OpAtomicUMin  %30  %32 %52 %54 %37
 %73 = OpAccessChain  %30  %34 %56
-%72 = OpAtomicUMin  %3  %73 %52 %54 %37
+%72 = OpAtomicUMin  %30  %73 %52 %54 %37
 %75 = OpAccessChain  %30  %36 %31
-%74 = OpAtomicUMin  %3  %75 %52 %54 %37
+%74 = OpAtomicUMin  %30  %75 %52 %54 %37
 %77 = OpAccessChain  %30  %36 %56 %56
-%76 = OpAtomicUMin  %3  %77 %52 %54 %37
-%78 = OpAtomicUMin  %3  %18 %63 %64 %37
+%76 = OpAtomicUMin  %30  %77 %52 %54 %37
+%78 = OpAtomicUMin  %19  %18 %63 %64 %37
 %80 = OpAccessChain  %19  %20 %56
-%79 = OpAtomicUMin  %3  %80 %63 %64 %37
+%79 = OpAtomicUMin  %19  %80 %63 %64 %37
 %82 = OpAccessChain  %19  %22 %31
-%81 = OpAtomicUMin  %3  %82 %63 %64 %37
+%81 = OpAtomicUMin  %19  %82 %63 %64 %37
 %84 = OpAccessChain  %19  %22 %56 %56
-%83 = OpAtomicUMin  %3  %84 %63 %64 %37
+%83 = OpAtomicUMin  %19  %84 %63 %64 %37
 OpReturn
 OpFunctionEnd

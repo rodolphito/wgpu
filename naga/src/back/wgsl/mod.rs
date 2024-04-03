@@ -50,3 +50,12 @@ impl crate::AtomicFunction {
         }
     }
 }
+
+impl crate::AtomicFunctionNoReturn {
+    const fn to_wgsl(self) -> &'static str {
+        match self {
+            Self::Min => "Min",
+            Self::Max => "Max",
+        }
+    }
+}

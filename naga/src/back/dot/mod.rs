@@ -252,6 +252,15 @@ impl StatementGraph {
                     }
                     "Atomic"
                 }
+                S::AtomicNoReturn {
+                    pointer,
+                    fun: _,
+                    value,
+                } => {
+                    self.dependencies.push((id, pointer, "pointer"));
+                    self.dependencies.push((id, value, "value"));
+                    "AtomicNoReturn"
+                }
                 S::WorkGroupUniformLoad { pointer, result } => {
                     self.emits.push((id, result));
                     self.dependencies.push((id, pointer, "pointer"));

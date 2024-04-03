@@ -45,8 +45,8 @@ pub enum AtomicError {
     InvalidOperand(Handle<crate::Expression>),
     #[error("Result type for {0:?} doesn't match the statement")]
     ResultTypeMismatch(Handle<crate::Expression>),
-    #[error("Capability {1:?} is required to use {0:?}")]
-    MissingCapabilities(crate::AtomicFunction, super::Capabilities),
+    #[error("Capability {0:?} is required")]
+    MissingCapability(super::Capabilities),
 }
 
 #[derive(Clone, Debug, thiserror::Error)]
@@ -359,35 +359,16 @@ impl super::Validator {
         match *value_inner {
             crate::TypeInner::Scalar(scalar) if scalar == ptr_scalar => {
                 if scalar.width == 8 {
-                    match *fun {
-                        crate::AtomicFunction::Min | crate::AtomicFunction::Max => {
-                            if !self
-                                .capabilities
-                                .contains(super::Capabilities::SHADER_INT64_ATOMIC_MIN_MAX)
-                            {
-                                log::error!("Int64 atomic min/max is not supported");
-                                return Err(AtomicError::MissingCapabilities(
-                                    *fun,
-                                    super::Capabilities::SHADER_INT64_ATOMIC_MIN_MAX,
-                                )
-                                .with_span_handle(value, context.expressions)
-                                .into_other());
-                            }
-                        }
-                        _ => {
-                            if !self
-                                .capabilities
-                                .contains(super::Capabilities::SHADER_INT64_ATOMIC_ALL_OPS)
-                            {
-                                log::error!("Int64 atomic operations are not supported");
-                                return Err(AtomicError::MissingCapabilities(
-                                    *fun,
-                                    super::Capabilities::SHADER_INT64_ATOMIC_ALL_OPS,
-                                )
-                                .with_span_handle(value, context.expressions)
-                                .into_other());
-                            }
-                        }
+                    if !self
+                        .capabilities
+                        .contains(super::Capabilities::SHADER_INT64_ATOMIC_ALL_OPS)
+                    {
+                        log::error!("Int64 atomic operations are not supported");
+                        return Err(AtomicError::MissingCapability(
+                            super::Capabilities::SHADER_INT64_ATOMIC_ALL_OPS,
+                        )
+                        .with_span_handle(value, context.expressions)
+                        .into_other());
                     }
                 }
             }
@@ -432,6 +413,59 @@ impl super::Validator {
                     .into_other())
             }
         }
+        Ok(())
+    }
+
+    fn validate_atomic_no_return(
+        &mut self,
+        pointer: Handle<crate::Expression>,
+        value: Handle<crate::Expression>,
+        context: &BlockContext,
+    ) -> Result<(), WithSpan<FunctionError>> {
+        let pointer_inner = context.resolve_type(pointer, &self.valid_expression_set)?;
+        let ptr_scalar = match *pointer_inner {
+            crate::TypeInner::Pointer { base, .. } => match context.types[base].inner {
+                crate::TypeInner::Atomic(scalar) => scalar,
+                ref other => {
+                    log::error!("Atomic pointer to type {:?}", other);
+                    return Err(AtomicError::InvalidPointer(pointer)
+                        .with_span_handle(pointer, context.expressions)
+                        .into_other());
+                }
+            },
+            ref other => {
+                log::error!("Atomic on type {:?}", other);
+                return Err(AtomicError::InvalidPointer(pointer)
+                    .with_span_handle(pointer, context.expressions)
+                    .into_other());
+            }
+        };
+
+        let value_inner = context.resolve_type(value, &self.valid_expression_set)?;
+        match *value_inner {
+            crate::TypeInner::Scalar(scalar) if scalar == ptr_scalar => {
+                if scalar.width == 8 {
+                    if !self
+                        .capabilities
+                        .contains(super::Capabilities::SHADER_INT64_ATOMIC_MIN_MAX)
+                    {
+                        log::error!("Int64 atomic min/max is not supported");
+                        return Err(AtomicError::MissingCapability(
+                            super::Capabilities::SHADER_INT64_ATOMIC_MIN_MAX,
+                        )
+                        .with_span_handle(value, context.expressions)
+                        .into_other());
+                    }
+                }
+            }
+            ref other => {
+                log::error!("Atomic operand type {:?}", other);
+                return Err(AtomicError::InvalidOperand(value)
+                    .with_span_handle(value, context.expressions)
+                    .into_other());
+            }
+        }
+
         Ok(())
     }
 
@@ -851,6 +885,13 @@ impl super::Validator {
                     result,
                 } => {
                     self.validate_atomic(pointer, fun, value, result, context)?;
+                }
+                S::AtomicNoReturn {
+                    pointer,
+                    fun: _,
+                    value,
+                } => {
+                    self.validate_atomic_no_return(pointer, value, context)?;
                 }
                 S::WorkGroupUniformLoad { pointer, result } => {
                     stages &= super::ShaderStages::COMPUTE;

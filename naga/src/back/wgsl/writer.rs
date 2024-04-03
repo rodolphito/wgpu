@@ -594,7 +594,7 @@ impl<W: Write> Writer<W> {
                 write!(self.out, ">")?;
             }
             TypeInner::AccelerationStructure => write!(self.out, "acceleration_structure")?,
-            _ => {
+            TypeInner::Struct { .. } | TypeInner::RayQuery => {
                 return Err(Error::Unimplemented(format!("write_value_type {inner:?}")));
             }
         }
@@ -759,6 +759,20 @@ impl<W: Write> Writer<W> {
                     write!(self.out, ", ")?;
                     self.write_expr(module, cmp, func_ctx)?;
                 }
+                write!(self.out, ", ")?;
+                self.write_expr(module, value, func_ctx)?;
+                writeln!(self.out, ");")?
+            }
+            Statement::AtomicNoReturn {
+                pointer,
+                ref fun,
+                value,
+            } => {
+                write!(self.out, "{level}")?;
+
+                let fun_str = fun.to_wgsl();
+                write!(self.out, "atomic{fun_str}(")?;
+                self.write_expr(module, pointer, func_ctx)?;
                 write!(self.out, ", ")?;
                 self.write_expr(module, value, func_ctx)?;
                 writeln!(self.out, ");")?

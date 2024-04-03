@@ -501,6 +501,15 @@ impl super::Validator {
                 validate_expr(result)?;
                 Ok(())
             }
+            crate::Statement::AtomicNoReturn {
+                pointer,
+                fun: _,
+                value,
+            } => {
+                validate_expr(pointer)?;
+                validate_expr(value)?;
+                Ok(())
+            }
             crate::Statement::WorkGroupUniformLoad { pointer, result } => {
                 validate_expr(pointer)?;
                 validate_expr(result)?;

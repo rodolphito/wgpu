@@ -3011,30 +3011,10 @@ impl<W: Write> Writer<W> {
                             self.put_atomic_fetch(pointer, "xor", value, &context.expression)?;
                         }
                         crate::AtomicFunction::Min => {
-                            if context.expression.resolve_type(value).scalar_width() == Some(64) {
-                                self.put_atomic_operation(
-                                    pointer,
-                                    "",
-                                    "min",
-                                    value,
-                                    &context.expression,
-                                )?;
-                            } else {
-                                self.put_atomic_fetch(pointer, "min", value, &context.expression)?;
-                            }
+                            self.put_atomic_fetch(pointer, "min", value, &context.expression)?;
                         }
                         crate::AtomicFunction::Max => {
-                            if context.expression.resolve_type(value).scalar_width() == Some(64) {
-                                self.put_atomic_operation(
-                                    pointer,
-                                    "",
-                                    "max",
-                                    value,
-                                    &context.expression,
-                                )?;
-                            } else {
-                                self.put_atomic_fetch(pointer, "max", value, &context.expression)?;
-                            }
+                            self.put_atomic_fetch(pointer, "max", value, &context.expression)?;
                         }
                         crate::AtomicFunction::Exchange { compare: None } => {
                             self.put_atomic_operation(
@@ -3049,6 +3029,35 @@ impl<W: Write> Writer<W> {
                             return Err(Error::FeatureNotImplemented(
                                 "atomic CompareExchange".to_string(),
                             ));
+                        }
+                    }
+                    // done
+                    writeln!(self.out, ";")?;
+                }
+                crate::Statement::AtomicNoReturn {
+                    pointer,
+                    ref fun,
+                    value,
+                } => {
+                    write!(self.out, "{level}")?;
+                    match *fun {
+                        crate::AtomicFunctionNoReturn::Min => {
+                            self.put_atomic_operation(
+                                pointer,
+                                "",
+                                "min",
+                                value,
+                                &context.expression,
+                            )?;
+                        }
+                        crate::AtomicFunctionNoReturn::Max => {
+                            self.put_atomic_operation(
+                                pointer,
+                                "",
+                                "max",
+                                value,
+                                &context.expression,
+                            )?;
                         }
                     }
                     // done

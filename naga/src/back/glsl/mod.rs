@@ -97,6 +97,15 @@ impl crate::AtomicFunction {
     }
 }
 
+impl crate::AtomicFunctionNoReturn {
+    const fn to_glsl(self) -> &'static str {
+        match self {
+            Self::Min => "Min",
+            Self::Max => "Max",
+        }
+    }
+}
+
 impl crate::AddressSpace {
     const fn is_buffer(&self) -> bool {
         match *self {
@@ -2380,6 +2389,20 @@ impl<'a, W: Write> Writer<'a, W> {
                     }
                     _ => {}
                 }
+                self.write_expr(value, ctx)?;
+                writeln!(self.out, ");")?;
+            }
+            Statement::AtomicNoReturn {
+                pointer,
+                ref fun,
+                value,
+            } => {
+                write!(self.out, "{level}")?;
+
+                let fun_str = fun.to_glsl();
+                write!(self.out, "atomic{fun_str}(")?;
+                self.write_expr(pointer, ctx)?;
+                write!(self.out, ", ")?;
                 self.write_expr(value, ctx)?;
                 writeln!(self.out, ");")?;
             }

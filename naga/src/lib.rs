@@ -1113,6 +1113,16 @@ pub enum AtomicFunction {
     Exchange { compare: Option<Handle<Expression>> },
 }
 
+/// Function on an atomic value with no return.
+#[derive(Clone, Copy, Debug, Hash, Eq, Ord, PartialEq, PartialOrd)]
+#[cfg_attr(feature = "serialize", derive(Serialize))]
+#[cfg_attr(feature = "deserialize", derive(Deserialize))]
+#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
+pub enum AtomicFunctionNoReturn {
+    Min,
+    Max,
+}
+
 /// Hint at which precision to compute a derivative.
 #[derive(Clone, Copy, Debug, Hash, Eq, Ord, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serialize", derive(Serialize))]
@@ -1847,6 +1857,15 @@ pub enum Statement {
         ///
         /// [`AtomicResult`]: crate::Expression::AtomicResult
         result: Handle<Expression>,
+    },
+    /// Atomic function with no return value.
+    AtomicNoReturn {
+        /// Pointer to an atomic value.
+        pointer: Handle<Expression>,
+        /// Function to run on the atomic.
+        fun: AtomicFunctionNoReturn,
+        /// Value to use in the function.
+        value: Handle<Expression>,
     },
     /// Load uniformly from a uniform pointer in the workgroup address space.
     ///
