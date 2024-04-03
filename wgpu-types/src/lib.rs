@@ -895,7 +895,7 @@ bitflags::bitflags! {
         /// Supported platforms:
         /// - Vulkan (with VK_KHR_shader_atomic_int64)
         /// - DX12 (with SM 6.6+)
-        /// - Metal (with MSL 3.1+)
+        /// - Metal (with MSL 2.4+)
         ///
         /// This is a native only feature.
         const SHADER_INT64_ATOMIC_MIN_MAX = 1 << 56;

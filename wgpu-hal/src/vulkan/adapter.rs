@@ -953,7 +953,7 @@ impl PhysicalDeviceProperties {
             extensions.push(vk::ExtTextureCompressionAstcHdrFn::name());
         }
 
-        // Require `VK_EXT_shader_image_atomic_int64` if the associated feature was requested
+        // Require `VK_KHR_shader_atomic_int64` if the associated feature was requested
         if requested_features.intersects(
             wgt::Features::SHADER_INT64_ATOMIC_ALL_OPS | wgt::Features::SHADER_INT64_ATOMIC_MIN_MAX,
         ) {
