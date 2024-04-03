@@ -13,7 +13,7 @@
 		zero_initialize_workgroup_memory: true,
 	),
 	msl: (
-		lang_version: (3, 1),
+		lang_version: (2, 4),
 		per_entry_point_map: {},
 		inline_samplers: [],
 		spirv_cross_compatibility: false,

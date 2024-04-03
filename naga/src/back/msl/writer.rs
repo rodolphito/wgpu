@@ -3042,22 +3042,30 @@ impl<W: Write> Writer<W> {
                     write!(self.out, "{level}")?;
                     match *fun {
                         crate::AtomicFunctionNoReturn::Min => {
-                            self.put_atomic_operation(
-                                pointer,
-                                "",
-                                "min",
-                                value,
-                                &context.expression,
-                            )?;
+                            if context.expression.resolve_type(value).scalar_width() != Some(64) {
+                                self.put_atomic_fetch(pointer, "min", value, &context.expression)?;
+                            } else {
+                                self.put_atomic_operation(
+                                    pointer,
+                                    "",
+                                    "min",
+                                    value,
+                                    &context.expression,
+                                )?;
+                            }
                         }
                         crate::AtomicFunctionNoReturn::Max => {
-                            self.put_atomic_operation(
-                                pointer,
-                                "",
-                                "max",
-                                value,
-                                &context.expression,
-                            )?;
+                            if context.expression.resolve_type(value).scalar_width() != Some(64) {
+                                self.put_atomic_fetch(pointer, "max", value, &context.expression)?;
+                            } else {
+                                self.put_atomic_operation(
+                                    pointer,
+                                    "",
+                                    "max",
+                                    value,
+                                    &context.expression,
+                                )?;
+                            }
                         }
                     }
                     // done
