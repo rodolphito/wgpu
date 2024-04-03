@@ -890,7 +890,7 @@ impl super::PrivateCapabilities {
         );
         features.set(
             F::SHADER_INT64_ATOMIC_MIN_MAX,
-            self.msl_version >= MTLLanguageVersion::V3_1,
+            self.msl_version >= MTLLanguageVersion::V2_4,
         );
 
         features.set(

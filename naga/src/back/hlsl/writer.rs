@@ -1882,7 +1882,7 @@ impl<'a, W: fmt::Write> super::Writer<'a, W> {
                 value,
             } => {
                 write!(self.out, "{level}")?;
-                let res_name = format!("{}_discard", back::BAKE_PREFIX);
+                let res_name = format!("{}_discard{}", back::BAKE_PREFIX, pointer.index());
                 match func_ctx.info[value].ty {
                     proc::TypeResolution::Handle(handle) => self.write_type(module, handle)?,
                     proc::TypeResolution::Value(ref value) => {

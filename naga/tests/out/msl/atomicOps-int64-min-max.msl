@@ -19,37 +19,15 @@ kernel void cs_main(
 , device metal::atomic_ulong& storage_atomic_scalar [[user(fake0)]]
 , device type_1& storage_atomic_arr [[user(fake0)]]
 , device Struct& storage_struct [[user(fake0)]]
-, threadgroup metal::atomic_ulong& workgroup_atomic_scalar
-, threadgroup type_1& workgroup_atomic_arr
-, threadgroup Struct& workgroup_struct
 ) {
-    if (metal::all(id == metal::uint3(0u))) {
-        metal::atomic_store_explicit(&workgroup_atomic_scalar, 0, metal::memory_order_relaxed);
-        for (int __i0 = 0; __i0 < 2; __i0++) {
-            metal::atomic_store_explicit(&workgroup_atomic_arr.inner[__i0], 0, metal::memory_order_relaxed);
-        }
-        metal::atomic_store_explicit(&workgroup_struct.atomic_scalar, 0, metal::memory_order_relaxed);
-        for (int __i0 = 0; __i0 < 2; __i0++) {
-            metal::atomic_store_explicit(&workgroup_struct.atomic_arr.inner[__i0], 0, metal::memory_order_relaxed);
-        }
-    }
-    metal::threadgroup_barrier(metal::mem_flags::mem_threadgroup);
     metal::atomic_max_explicit(&storage_atomic_scalar, 1uL, metal::memory_order_relaxed);
     metal::atomic_max_explicit(&storage_atomic_arr.inner[1], 1uL, metal::memory_order_relaxed);
     metal::atomic_max_explicit(&storage_struct.atomic_scalar, 1uL, metal::memory_order_relaxed);
     metal::atomic_max_explicit(&storage_struct.atomic_arr.inner[1], 1uL, metal::memory_order_relaxed);
-    metal::atomic_max_explicit(&workgroup_atomic_scalar, 1uL, metal::memory_order_relaxed);
-    metal::atomic_max_explicit(&workgroup_atomic_arr.inner[1], 1uL, metal::memory_order_relaxed);
-    metal::atomic_max_explicit(&workgroup_struct.atomic_scalar, 1uL, metal::memory_order_relaxed);
-    metal::atomic_max_explicit(&workgroup_struct.atomic_arr.inner[1], 1uL, metal::memory_order_relaxed);
     metal::threadgroup_barrier(metal::mem_flags::mem_threadgroup);
     metal::atomic_min_explicit(&storage_atomic_scalar, 1uL, metal::memory_order_relaxed);
     metal::atomic_min_explicit(&storage_atomic_arr.inner[1], 1uL, metal::memory_order_relaxed);
     metal::atomic_min_explicit(&storage_struct.atomic_scalar, 1uL, metal::memory_order_relaxed);
     metal::atomic_min_explicit(&storage_struct.atomic_arr.inner[1], 1uL, metal::memory_order_relaxed);
-    metal::atomic_min_explicit(&workgroup_atomic_scalar, 1uL, metal::memory_order_relaxed);
-    metal::atomic_min_explicit(&workgroup_atomic_arr.inner[1], 1uL, metal::memory_order_relaxed);
-    metal::atomic_min_explicit(&workgroup_struct.atomic_scalar, 1uL, metal::memory_order_relaxed);
-    metal::atomic_min_explicit(&workgroup_struct.atomic_arr.inner[1], 1uL, metal::memory_order_relaxed);
     return;
 }
