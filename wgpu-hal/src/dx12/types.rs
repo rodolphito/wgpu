@@ -32,6 +32,16 @@ winapi::ENUM! {
     }
 }
 
+winapi::STRUCT! {
+    struct D3D12_FEATURE_DATA_D3D12_OPTIONS3 {
+        CopyQueueTimestampQueriesSupported: winapi::shared::minwindef::BOOL,
+        CastingFullyTypedFormatSupported: winapi::shared::minwindef::BOOL,
+        WriteBufferImmediateSupportFlags: D3D12_COMMAND_LIST_SUPPORT_FLAGS,
+        ViewInstancingTier: D3D12_VIEW_INSTANCING_TIER,
+        BarycentricsSupported: winapi::shared::minwindef::BOOL,
+    }
+}
+
 winapi::ENUM! {
     enum D3D12_WAVE_MMA_TIER  {
         D3D12_WAVE_MMA_TIER_NOT_SUPPORTED = 0,
@@ -40,12 +50,13 @@ winapi::ENUM! {
 }
 
 winapi::STRUCT! {
-    struct D3D12_FEATURE_DATA_D3D12_OPTIONS3 {
-        CopyQueueTimestampQueriesSupported: winapi::shared::minwindef::BOOL,
-        CastingFullyTypedFormatSupported: winapi::shared::minwindef::BOOL,
-        WriteBufferImmediateSupportFlags: D3D12_COMMAND_LIST_SUPPORT_FLAGS,
-        ViewInstancingTier: D3D12_VIEW_INSTANCING_TIER,
-        BarycentricsSupported: winapi::shared::minwindef::BOOL,
+    struct D3D12_FEATURE_DATA_D3D12_OPTIONS9 {
+        MeshShaderPipelineStatsSupported: winapi::shared::minwindef::BOOL,
+        MeshShaderSupportsFullRangeRenderTargetArrayIndex: winapi::shared::minwindef::BOOL,
+        AtomicInt64OnTypedResourceSupported: winapi::shared::minwindef::BOOL,
+        AtomicInt64OnGroupSharedSupported: winapi::shared::minwindef::BOOL,
+        DerivativesInMeshAndAmplificationShadersSupported: winapi::shared::minwindef::BOOL,
+        WaveMMATier: D3D12_WAVE_MMA_TIER,
     }
 }
 
@@ -68,16 +79,5 @@ winapi::ENUM! {
 winapi::STRUCT! {
     struct D3D12_FEATURE_DATA_SHADER_MODEL {
         HighestShaderModel: D3D_SHADER_MODEL,
-    }
-}
-
-winapi::STRUCT! {
-    struct D3D12_FEATURE_DATA_D3D12_OPTIONS9 {
-        MeshShaderPipelineStatsSupported: winapi::shared::minwindef::BOOL,
-        MeshShaderSupportsFullRangeRenderTargetArrayIndex: winapi::shared::minwindef::BOOL,
-        AtomicInt64OnTypedResourceSupported: winapi::shared::minwindef::BOOL,
-        AtomicInt64OnGroupSharedSupported: winapi::shared::minwindef::BOOL,
-        DerivativesInMeshAndAmplificationShadersSupported: winapi::shared::minwindef::BOOL,
-        WaveMMATier: D3D12_WAVE_MMA_TIER,
     }
 }
