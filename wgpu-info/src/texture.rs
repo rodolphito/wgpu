@@ -1,6 +1,6 @@
 // Lets keep these on one line
 #[rustfmt::skip]
-pub const TEXTURE_FORMAT_LIST: [wgpu::TextureFormat; 119] = [
+pub const TEXTURE_FORMAT_LIST: [wgpu::TextureFormat; 120] = [
     wgpu::TextureFormat::R8Unorm,
     wgpu::TextureFormat::R8Snorm,
     wgpu::TextureFormat::R8Uint,
@@ -32,6 +32,7 @@ pub const TEXTURE_FORMAT_LIST: [wgpu::TextureFormat; 119] = [
     wgpu::TextureFormat::Rgb10a2Uint,
     wgpu::TextureFormat::Rgb10a2Unorm,
     wgpu::TextureFormat::Rg11b10Float,
+    wgpu::TextureFormat::R64Uint,
     wgpu::TextureFormat::Rg32Uint,
     wgpu::TextureFormat::Rg32Sint,
     wgpu::TextureFormat::Rg32Float,

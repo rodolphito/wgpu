@@ -630,6 +630,7 @@ pub enum StorageFormat {
     Rg11b10Float,
 
     // 64-bit formats
+    R64Uint,
     Rg32Uint,
     Rg32Sint,
     Rg32Float,

@@ -183,6 +183,7 @@ impl crate::Adapter for super::Adapter {
                 flags.set(Tfc::STORAGE, pc.format_rg11b10_all);
                 flags
             }
+            Tf::R64Uint => Tfc::COLOR_ATTACHMENT | Tfc::STORAGE,
             Tf::Rg32Uint | Tf::Rg32Sint => Tfc::COLOR_ATTACHMENT | Tfc::STORAGE | msaa_count,
             Tf::Rg32Float => {
                 if pc.format_rg32float_all {
@@ -1016,6 +1017,7 @@ impl super::PrivateCapabilities {
             Tf::Rgb10a2Uint => RGB10A2Uint,
             Tf::Rgb10a2Unorm => RGB10A2Unorm,
             Tf::Rg11b10Float => RG11B10Float,
+            Tf::R64Uint => RG32Uint,
             Tf::Rg32Uint => RG32Uint,
             Tf::Rg32Sint => RG32Sint,
             Tf::Rg32Float => RG32Float,
