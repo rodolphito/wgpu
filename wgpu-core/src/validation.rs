@@ -329,6 +329,7 @@ fn map_storage_format_to_naga(format: wgt::TextureFormat) -> Option<naga::Storag
         Tf::Rgb10a2Unorm => Sf::Rgb10a2Unorm,
         Tf::Rg11b10Float => Sf::Rg11b10Float,
 
+        Tf::R64Uint => Sf::R64Uint,
         Tf::Rg32Uint => Sf::Rg32Uint,
         Tf::Rg32Sint => Sf::Rg32Sint,
         Tf::Rg32Float => Sf::Rg32Float,
@@ -385,6 +386,7 @@ fn map_storage_format_from_naga(format: naga::StorageFormat) -> wgt::TextureForm
         Sf::Rgb10a2Unorm => Tf::Rgb10a2Unorm,
         Sf::Rg11b10Float => Tf::Rg11b10Float,
 
+        Sf::R64Uint => Tf::R64Uint,
         Sf::Rg32Uint => Tf::Rg32Uint,
         Sf::Rg32Sint => Tf::Rg32Sint,
         Sf::Rg32Float => Tf::Rg32Float,
@@ -684,6 +686,7 @@ impl NumericType {
             Tf::Rg8Unorm | Tf::Rg8Snorm | Tf::Rg16Float | Tf::Rg32Float => {
                 (NumericDimension::Vector(Vs::Bi), Scalar::F32)
             }
+            Tf::R64Uint => (NumericDimension::Scalar, Scalar::U64),
             Tf::Rg8Uint | Tf::Rg16Uint | Tf::Rg32Uint => {
                 (NumericDimension::Vector(Vs::Bi), Scalar::U32)
             }

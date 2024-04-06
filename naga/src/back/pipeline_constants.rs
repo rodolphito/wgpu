@@ -638,6 +638,20 @@ fn adjust_stmt(new_pos: &[Handle<Expression>], stmt: &mut Statement) {
             adjust(pointer);
             adjust(value);
         }
+        Statement::ImageAtomic {
+            ref mut image,
+            ref mut coordinate,
+            ref mut array_index,
+            fun: _,
+            ref mut value,
+        } => {
+            adjust(image);
+            adjust(coordinate);
+            if let Some(e) = array_index.as_mut() {
+                adjust(e);
+            }
+            adjust(value);
+        }
         Statement::WorkGroupUniformLoad {
             ref mut pointer,
             ref mut result,

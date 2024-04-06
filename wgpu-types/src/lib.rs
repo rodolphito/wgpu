@@ -907,6 +907,15 @@ bitflags::bitflags! {
         ///
         /// This is a native only feature.
         const SHADER_INT64_ATOMIC_ALL_OPS = 1 << 57;
+        /// Enables R64Uint texture atomic min and max.
+        ///
+        /// Supported platforms:
+        /// - Vulkan (with VK_EXT_shader_image_atomic_int64)
+        /// - DX12 (with SM 6.6+ emulated via Rg32Uint texture)
+        /// - Metal (with MSL 3.1+ emulated via RG32Uint texture)
+        ///
+        /// This is a native only feature.
+        const TEXTURE_INT64_ATOMIC = 1 << 58;
     }
 }
 
@@ -2440,6 +2449,10 @@ pub enum TextureFormat {
     Rg11b10Float,
 
     // Normal 64 bit formats
+    /// Red channel only. 64 bit integer per channel. Unsigned in shader.
+    ///
+    /// [`Features::TEXTURE_INT64_ATOMIC`] must be enabled to use this texture format.
+    R64Uint,
     /// Red and green channels. 32 bit integer per channel. Unsigned in shader.
     Rg32Uint,
     /// Red and green channels. 32 bit integer per channel. Signed in shader.
@@ -2712,6 +2725,7 @@ impl<'de> Deserialize<'de> for TextureFormat {
                     "rgb10a2uint" => TextureFormat::Rgb10a2Uint,
                     "rgb10a2unorm" => TextureFormat::Rgb10a2Unorm,
                     "rg11b10ufloat" => TextureFormat::Rg11b10Float,
+                    "r64uint" => TextureFormat::R64Uint,
                     "rg32uint" => TextureFormat::Rg32Uint,
                     "rg32sint" => TextureFormat::Rg32Sint,
                     "rg32float" => TextureFormat::Rg32Float,
@@ -2840,6 +2854,7 @@ impl Serialize for TextureFormat {
             TextureFormat::Rgb10a2Uint => "rgb10a2uint",
             TextureFormat::Rgb10a2Unorm => "rgb10a2unorm",
             TextureFormat::Rg11b10Float => "rg11b10ufloat",
+            TextureFormat::R64Uint => "r64uint",
             TextureFormat::Rg32Uint => "rg32uint",
             TextureFormat::Rg32Sint => "rg32sint",
             TextureFormat::Rg32Float => "rg32float",
@@ -3070,6 +3085,7 @@ impl TextureFormat {
             | Self::Rgb10a2Uint
             | Self::Rgb10a2Unorm
             | Self::Rg11b10Float
+            | Self::R64Uint
             | Self::Rg32Uint
             | Self::Rg32Sint
             | Self::Rg32Float
@@ -3185,6 +3201,8 @@ impl TextureFormat {
             | Self::Depth24PlusStencil8
             | Self::Depth32Float => Features::empty(),
 
+            Self::R64Uint => Features::TEXTURE_INT64_ATOMIC,
+
             Self::Depth32FloatStencil8 => Features::DEPTH32FLOAT_STENCIL8,
 
             Self::NV12 => Features::TEXTURE_FORMAT_NV12,
@@ -3288,6 +3306,7 @@ impl TextureFormat {
             Self::Rgb10a2Uint =>          (        msaa, attachment),
             Self::Rgb10a2Unorm =>         (msaa_resolve, attachment),
             Self::Rg11b10Float =>         (        msaa,   rg11b10f),
+            Self::R64Uint =>              (        noaa, attachment),
             Self::Rg32Uint =>             (        noaa,  all_flags),
             Self::Rg32Sint =>             (        noaa,  all_flags),
             Self::Rg32Float =>            (        noaa,  all_flags),
@@ -3408,6 +3427,7 @@ impl TextureFormat {
             | Self::Rg16Uint
             | Self::Rgba16Uint
             | Self::R32Uint
+            | Self::R64Uint
             | Self::Rg32Uint
             | Self::Rgba32Uint
             | Self::Rgb10a2Uint => Some(uint),
@@ -3536,7 +3556,7 @@ impl TextureFormat {
             | Self::Rgba16Uint
             | Self::Rgba16Sint
             | Self::Rgba16Float => Some(8),
-            Self::Rg32Uint | Self::Rg32Sint | Self::Rg32Float => Some(8),
+            Self::R64Uint | Self::Rg32Uint | Self::Rg32Sint | Self::Rg32Float => Some(8),
 
             Self::Rgba32Uint | Self::Rgba32Sint | Self::Rgba32Float => Some(16),
 
@@ -3616,6 +3636,7 @@ impl TextureFormat {
             | Self::Rgba16Uint
             | Self::Rgba16Sint
             | Self::Rgba16Float
+            | Self::R64Uint
             | Self::Rg32Uint
             | Self::Rg32Sint
             | Self::Rg32Float
@@ -3658,6 +3679,7 @@ impl TextureFormat {
             Self::R32Uint
             | Self::R32Sint
             | Self::R32Float
+            | Self::R64Uint
             | Self::Rg32Uint
             | Self::Rg32Sint
             | Self::Rg32Float
@@ -3692,7 +3714,8 @@ impl TextureFormat {
             | Self::R16Float
             | Self::R32Uint
             | Self::R32Sint
-            | Self::R32Float => 1,
+            | Self::R32Float
+            | Self::R64Uint => 1,
 
             Self::Rg8Unorm
             | Self::Rg8Snorm
@@ -3940,6 +3963,10 @@ fn texture_format_serialize() {
     assert_eq!(
         serde_json::to_string(&TextureFormat::Rg11b10Float).unwrap(),
         "\"rg11b10ufloat\"".to_string()
+    );
+    assert_eq!(
+        serde_json::to_string(&TextureFormat::R64Uint).unwrap(),
+        "\"r64uint\"".to_string()
     );
     assert_eq!(
         serde_json::to_string(&TextureFormat::Rg32Uint).unwrap(),
@@ -4236,6 +4263,10 @@ fn texture_format_deserialize() {
     assert_eq!(
         serde_json::from_str::<TextureFormat>("\"rg11b10ufloat\"").unwrap(),
         TextureFormat::Rg11b10Float
+    );
+    assert_eq!(
+        serde_json::from_str::<TextureFormat>("\"r64uint\"").unwrap(),
+        TextureFormat::R64Uint
     );
     assert_eq!(
         serde_json::from_str::<TextureFormat>("\"rg32uint\"").unwrap(),

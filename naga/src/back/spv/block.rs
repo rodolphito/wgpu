@@ -2525,6 +2525,15 @@ impl<'w> BlockContext<'w> {
 
                     block.body.push(instruction);
                 }
+                crate::Statement::ImageAtomic {
+                    image,
+                    coordinate,
+                    array_index,
+                    fun,
+                    value,
+                } => {
+                    self.write_image_atomic(image, coordinate, array_index, fun, value, &mut block)?
+                }
                 crate::Statement::WorkGroupUniformLoad { pointer, result } => {
                     self.writer
                         .write_barrier(crate::Barrier::WORK_GROUP, &mut block);

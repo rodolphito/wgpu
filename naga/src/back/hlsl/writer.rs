@@ -1928,6 +1928,35 @@ impl<'a, W: fmt::Write> super::Writer<'a, W> {
                 self.write_expr(module, value, func_ctx)?;
                 writeln!(self.out, ", {res_name});")?;
             }
+            Statement::ImageAtomic {
+                image,
+                coordinate,
+                array_index,
+                fun,
+                value,
+            } => {
+                write!(self.out, "{level}")?;
+
+                let fun_str = fun.to_hlsl_suffix();
+                write!(self.out, "Interlocked{fun_str}(")?;
+                self.write_expr(module, image, func_ctx)?;
+
+                write!(self.out, "[")?;
+                if let Some(index) = array_index {
+                    // Array index accepted only for texture_storage_2d_array, so we can safety use int3(coordinate, array_index) here
+                    write!(self.out, "int3(")?;
+                    self.write_expr(module, coordinate, func_ctx)?;
+                    write!(self.out, ", ")?;
+                    self.write_expr(module, index, func_ctx)?;
+                    write!(self.out, ")")?;
+                } else {
+                    self.write_expr(module, coordinate, func_ctx)?;
+                }
+                write!(self.out, "],")?;
+
+                self.write_expr(module, value, func_ctx)?;
+                writeln!(self.out, ");")?;
+            }
             Statement::WorkGroupUniformLoad { pointer, result } => {
                 self.write_barrier(crate::Barrier::WORK_GROUP, level)?;
                 write!(self.out, "{level}")?;

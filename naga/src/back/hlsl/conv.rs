@@ -143,6 +143,7 @@ impl crate::StorageFormat {
             Self::Rgba8Uint
             | Self::Rgba16Uint
             | Self::R32Uint
+            | Self::R64Uint // TODO: What the hell is going on here
             | Self::Rg32Uint
             | Self::Rgba32Uint
             | Self::Rgb10a2Uint => "uint4",

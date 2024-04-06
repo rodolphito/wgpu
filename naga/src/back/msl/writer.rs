@@ -1038,6 +1038,45 @@ impl<W: Write> Writer<W> {
         Ok(())
     }
 
+    fn put_image_atomic(
+        &mut self,
+        level: back::Level,
+        image: Handle<crate::Expression>,
+        address: &TexelAddress,
+        fun: crate::AtomicFunctionNoReturn,
+        value: Handle<crate::Expression>,
+        context: &StatementContext,
+    ) -> BackendResult {
+        match context.expression.policies.image_store {
+            proc::BoundsCheckPolicy::Restrict => {
+                // We don't have a restricted level value, because we don't
+                // support writes to mipmapped textures.
+                debug_assert!(address.level.is_none());
+
+                write!(self.out, "{level}")?;
+                self.put_expression(image, &context.expression, false)?;
+                let fun_str = fun.to_msl();
+                write!(self.out, ".atomic_{fun_str}(")?;
+                self.put_expression(value, &context.expression, true)?;
+                write!(self.out, ", ")?;
+                self.put_restricted_texel_address(image, address, &context.expression)?;
+                writeln!(self.out, ");")?;
+            }
+            proc::BoundsCheckPolicy::ReadZeroSkipWrite => {
+                write!(self.out, "{level}if (")?;
+                self.put_image_access_bounds_check(image, address, &context.expression)?;
+                writeln!(self.out, ") {{")?;
+                self.put_unchecked_image_store(level.next(), image, address, value, context)?;
+                writeln!(self.out, "{level}}}")?;
+            }
+            proc::BoundsCheckPolicy::Unchecked => {
+                self.put_unchecked_image_store(level, image, address, value, context)?;
+            }
+        }
+
+        Ok(())
+    }
+
     fn put_unchecked_image_store(
         &mut self,
         level: back::Level,
@@ -3071,6 +3110,21 @@ impl<W: Write> Writer<W> {
                     }
                     // done
                     writeln!(self.out, ";")?;
+                }
+                crate::Statement::ImageAtomic {
+                    image,
+                    coordinate,
+                    array_index,
+                    fun,
+                    value,
+                } => {
+                    let address = TexelAddress {
+                        coordinate,
+                        array_index,
+                        sample: None,
+                        level: None,
+                    };
+                    self.put_image_atomic(level, image, &address, fun, value, context)?
                 }
                 crate::Statement::WorkGroupUniformLoad { pointer, result } => {
                     self.write_barrier(crate::Barrier::WORK_GROUP, level)?;

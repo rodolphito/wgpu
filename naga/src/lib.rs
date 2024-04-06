@@ -630,6 +630,7 @@ pub enum StorageFormat {
     Rg11b10Float,
 
     // 64-bit formats
+    R64Uint,
     Rg32Uint,
     Rg32Sint,
     Rg32Float,
@@ -1855,6 +1856,25 @@ pub enum Statement {
         /// Function to run on the atomic.
         fun: AtomicFunctionNoReturn,
         /// Value to use in the function.
+        value: Handle<Expression>,
+    },
+    /// Performs an atomic operation on a texel value of an image.
+    ///
+    /// The `image`, `coordinate`, and `array_index` fields have the same
+    /// meanings as the corresponding operands of an [`ImageLoad`] expression;
+    /// see that documentation for details. Doing atomics on multisampled images
+    /// or images with mipmaps is not supported, so there are no `level` or
+    /// `sample` operands.
+    ///
+    /// This statement is a barrier for any operations on the corresponding
+    /// [`Expression::GlobalVariable`] for this image.
+    ///
+    /// [`ImageLoad`]: Expression::ImageLoad
+    ImageAtomic {
+        image: Handle<Expression>,
+        coordinate: Handle<Expression>,
+        array_index: Option<Handle<Expression>>,
+        fun: AtomicFunctionNoReturn,
         value: Handle<Expression>,
     },
     /// Load uniformly from a uniform pointer in the workgroup address space.

@@ -540,6 +540,19 @@ impl super::Validator {
                 validate_expr(value)?;
                 Ok(())
             }
+            crate::Statement::ImageAtomic {
+                image,
+                coordinate,
+                array_index,
+                fun: _,
+                value,
+            } => {
+                validate_expr(image)?;
+                validate_expr(coordinate)?;
+                validate_expr_opt(array_index)?;
+                validate_expr(value)?;
+                Ok(())
+            }
             crate::Statement::WorkGroupUniformLoad { pointer, result } => {
                 validate_expr(pointer)?;
                 validate_expr(result)?;

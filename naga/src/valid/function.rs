@@ -919,6 +919,121 @@ impl super::Validator {
                 } => {
                     self.validate_atomic_no_return(pointer, value, context)?;
                 }
+                S::ImageAtomic {
+                    image,
+                    coordinate,
+                    array_index,
+                    fun: _,
+                    value,
+                } => {
+                    //Note: this code uses a lot of `FunctionError::InvalidImageStore`,
+                    // and could probably be refactored.
+                    let var = match *context.get_expression(image) {
+                        crate::Expression::GlobalVariable(var_handle) => {
+                            &context.global_vars[var_handle]
+                        }
+                        // We're looking at a binding index situation, so punch through the index and look at the global behind it.
+                        crate::Expression::Access { base, .. }
+                        | crate::Expression::AccessIndex { base, .. } => {
+                            match *context.get_expression(base) {
+                                crate::Expression::GlobalVariable(var_handle) => {
+                                    &context.global_vars[var_handle]
+                                }
+                                _ => {
+                                    return Err(FunctionError::InvalidImageStore(
+                                        ExpressionError::ExpectedGlobalVariable,
+                                    )
+                                    .with_span_handle(image, context.expressions))
+                                }
+                            }
+                        }
+                        _ => {
+                            return Err(FunctionError::InvalidImageStore(
+                                ExpressionError::ExpectedGlobalVariable,
+                            )
+                            .with_span_handle(image, context.expressions))
+                        }
+                    };
+
+                    // Punch through a binding array to get the underlying type
+                    let global_ty = match context.types[var.ty].inner {
+                        Ti::BindingArray { base, .. } => &context.types[base].inner,
+                        ref inner => inner,
+                    };
+
+                    let value_ty = match *global_ty {
+                        Ti::Image {
+                            class,
+                            arrayed,
+                            dim,
+                        } => {
+                            match context
+                                .resolve_type(coordinate, &self.valid_expression_set)?
+                                .image_storage_coordinates()
+                            {
+                                Some(coord_dim) if coord_dim == dim => {}
+                                _ => {
+                                    return Err(FunctionError::InvalidImageStore(
+                                        ExpressionError::InvalidImageCoordinateType(
+                                            dim, coordinate,
+                                        ),
+                                    )
+                                    .with_span_handle(coordinate, context.expressions));
+                                }
+                            };
+                            if arrayed != array_index.is_some() {
+                                return Err(FunctionError::InvalidImageStore(
+                                    ExpressionError::InvalidImageArrayIndex,
+                                )
+                                .with_span_handle(coordinate, context.expressions));
+                            }
+                            if let Some(expr) = array_index {
+                                match *context.resolve_type(expr, &self.valid_expression_set)? {
+                                    Ti::Scalar(crate::Scalar {
+                                        kind: crate::ScalarKind::Sint | crate::ScalarKind::Uint,
+                                        width: _,
+                                    }) => {}
+                                    _ => {
+                                        return Err(FunctionError::InvalidImageStore(
+                                            ExpressionError::InvalidImageArrayIndexType(expr),
+                                        )
+                                        .with_span_handle(expr, context.expressions));
+                                    }
+                                }
+                            }
+                            match class {
+                                crate::ImageClass::Storage { format, .. } => {
+                                    crate::TypeInner::Vector {
+                                        size: crate::VectorSize::Quad,
+                                        scalar: crate::Scalar {
+                                            kind: format.into(),
+                                            width: 4,
+                                        },
+                                    }
+                                }
+                                _ => {
+                                    return Err(FunctionError::InvalidImageStore(
+                                        ExpressionError::InvalidImageClass(class),
+                                    )
+                                    .with_span_handle(image, context.expressions));
+                                }
+                            }
+                        }
+                        _ => {
+                            return Err(FunctionError::InvalidImageStore(
+                                ExpressionError::ExpectedImageType(var.ty),
+                            )
+                            .with_span()
+                            .with_handle(var.ty, context.types)
+                            .with_handle(image, context.expressions))
+                        }
+                    };
+
+                    if *context.resolve_type(value, &self.valid_expression_set)? != value_ty {
+                        return Err(FunctionError::InvalidStoreValue(value)
+                            .with_span_handle(value, context.expressions));
+                    }
+                }
                 S::WorkGroupUniformLoad { pointer, result } => {
                     stages &= super::ShaderStages::COMPUTE;
                     let pointer_inner =

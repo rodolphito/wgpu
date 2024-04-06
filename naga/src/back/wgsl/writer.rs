@@ -783,6 +783,27 @@ impl<W: Write> Writer<W> {
                 self.write_expr(module, value, func_ctx)?;
                 writeln!(self.out, ");")?
             }
+            Statement::ImageAtomic {
+                image,
+                coordinate,
+                array_index,
+                ref fun,
+                value,
+            } => {
+                write!(self.out, "{level}")?;
+                let fun_str = fun.to_wgsl();
+                write!(self.out, "imageAtomic{fun_str}(")?;
+                self.write_expr(module, image, func_ctx)?;
+                write!(self.out, ", ")?;
+                self.write_expr(module, coordinate, func_ctx)?;
+                if let Some(array_index_expr) = array_index {
+                    write!(self.out, ", ")?;
+                    self.write_expr(module, array_index_expr, func_ctx)?;
+                }
+                write!(self.out, ", ")?;
+                self.write_expr(module, value, func_ctx)?;
+                writeln!(self.out, ");")?;
+            }
             Statement::WorkGroupUniformLoad { pointer, result } => {
                 write!(self.out, "{level}")?;
                 // TODO: Obey named expressions here.
@@ -1902,6 +1923,7 @@ const fn storage_format_str(format: crate::StorageFormat) -> &'static str {
         Sf::Rgb10a2Uint => "rgb10a2uint",
         Sf::Rgb10a2Unorm => "rgb10a2unorm",
         Sf::Rg11b10Float => "rg11b10float",
+        Sf::R64Uint => "r64uint",
         Sf::Rg32Uint => "rg32uint",
         Sf::Rg32Sint => "rg32sint",
         Sf::Rg32Float => "rg32float",

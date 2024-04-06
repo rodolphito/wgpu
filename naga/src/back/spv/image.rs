@@ -229,6 +229,47 @@ impl Access for Store {
     fn out_of_bounds_value(&self, _ctx: &mut BlockContext<'_>) {}
 }
 
+/// Texel access information for a [`Store`] statement.
+///
+/// [`Store`]: crate::Statement::Store
+struct Atomic {
+    /// The id of the image being written to.
+    image_id: Word,
+
+    /// The kind of atomic operation to perform
+    fun: crate::AtomicFunctionNoReturn,
+
+    /// The value we're going to write to the texel.
+    value_id: Word,
+}
+
+impl Access for Atomic {
+    /// Stores don't generate any value.
+    type Output = ();
+
+    fn generate(
+        &self,
+        _id_gen: &mut IdGenerator,
+        coordinates_id: Word,
+        _level_id: Option<Word>,
+        _sample_id: Option<Word>,
+        block: &mut Block,
+    ) {
+        block.body.push(Instruction::image_atomic(
+            self.image_id,
+            coordinates_id,
+            self.fun,
+            self.value_id,
+        ));
+    }
+
+    /// Stores don't generate any value, so this just returns `()`.
+    fn result_type(&self) {}
+
+    /// Stores don't generate any value, so this just returns `()`.
+    fn out_of_bounds_value(&self, _ctx: &mut BlockContext<'_>) {}
+}
+
 impl<'w> BlockContext<'w> {
     /// Extend image coordinates with an array index, if necessary.
     ///
@@ -1162,6 +1203,70 @@ impl<'w> BlockContext<'w> {
         let value_id = self.cached[value];
 
         let write = Store { image_id, value_id };
+
+        match *self.fun_info[image].ty.inner_with(&self.ir_module.types) {
+            crate::TypeInner::Image {
+                class:
+                    crate::ImageClass::Storage {
+                        format: crate::StorageFormat::Bgra8Unorm,
+                        ..
+                    },
+                ..
+            } => self.writer.require_any(
+                "Bgra8Unorm storage write",
+                &[spirv::Capability::StorageImageWriteWithoutFormat],
+            )?,
+            _ => {}
+        }
+
+        match self.writer.bounds_check_policies.image_store {
+            crate::proc::BoundsCheckPolicy::Restrict => {
+                let (coords, _, _) =
+                    self.write_restricted_coordinates(image_id, coordinates, None, None, block)?;
+                write.generate(&mut self.writer.id_gen, coords, None, None, block);
+            }
+            crate::proc::BoundsCheckPolicy::ReadZeroSkipWrite => {
+                self.write_conditional_image_access(
+                    image_id,
+                    coordinates,
+                    None,
+                    None,
+                    block,
+                    &write,
+                )?;
+            }
+            crate::proc::BoundsCheckPolicy::Unchecked => {
+                write.generate(
+                    &mut self.writer.id_gen,
+                    coordinates.value_id,
+                    None,
+                    None,
+                    block,
+                );
+            }
+        }
+
+        Ok(())
+    }
+
+    pub(super) fn write_image_atomic(
+        &mut self,
+        image: Handle<crate::Expression>,
+        coordinate: Handle<crate::Expression>,
+        array_index: Option<Handle<crate::Expression>>,
+        fun: crate::AtomicFunctionNoReturn,
+        value: Handle<crate::Expression>,
+        block: &mut Block,
+    ) -> Result<(), Error> {
+        let image_id = self.get_handle_id(image);
+        let coordinates = self.write_image_coordinates(coordinate, array_index, block)?;
+        let value_id = self.cached[value];
+
+        let write = Atomic {
+            image_id,
+            fun,
+            value_id,
+        };
 
         match *self.fun_info[image].ty.inner_with(&self.ir_module.types) {
             crate::TypeInner::Image {
