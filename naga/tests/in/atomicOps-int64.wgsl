@@ -1,6 +1,6 @@
 // This test covers the cross product of:
 //
-// * All atomic operations.
+// * All int64 atomic operations.
 // * On all applicable scopes (storage read-write, workgroup).
 // * For all shapes of modeling atomic data.
 

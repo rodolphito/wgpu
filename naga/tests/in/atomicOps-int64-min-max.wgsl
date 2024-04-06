@@ -1,9 +1,3 @@
-// This test covers the cross product of:
-//
-// * All atomic operations.
-// * On all applicable scopes (storage read-write, workgroup).
-// * For all shapes of modeling atomic data.
-
 struct Struct {
     atomic_scalar: atomic<u64>,
     atomic_arr: array<atomic<u64>, 2>,
