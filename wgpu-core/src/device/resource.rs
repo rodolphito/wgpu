@@ -2772,8 +2772,9 @@ impl<A: HalApi> Device<A> {
             label: desc.label.to_hal(self.instance_flags),
             layout: pipeline_layout.raw(),
             stage: hal::ProgrammableStage {
-                entry_point: final_entry_point_name.as_ref(),
                 module: shader_module.raw(),
+                entry_point: final_entry_point_name.as_ref(),
+                constants: desc.stage.constants.as_ref(),
             },
         };
 
@@ -3188,6 +3189,7 @@ impl<A: HalApi> Device<A> {
             hal::ProgrammableStage {
                 module: vertex_shader_module.raw(),
                 entry_point: &vertex_entry_point_name,
+                constants: stage_desc.constants.as_ref(),
             }
         };
 
@@ -3247,6 +3249,7 @@ impl<A: HalApi> Device<A> {
                 Some(hal::ProgrammableStage {
                     module: shader_module.raw(),
                     entry_point: &fragment_entry_point_name,
+                    constants: fragment_state.stage.constants.as_ref(),
                 })
             }
             None => None,
