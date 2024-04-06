@@ -630,6 +630,14 @@ fn adjust_stmt(new_pos: &[Handle<Expression>], stmt: &mut Statement) {
                 | crate::AtomicFunction::Exchange { compare: None } => {}
             }
         }
+        crate::Statement::AtomicNoReturn {
+            ref mut pointer,
+            ref mut value,
+            fun: _,
+        } => {
+            adjust(pointer);
+            adjust(value);
+        }
         Statement::WorkGroupUniformLoad {
             ref mut pointer,
             ref mut result,
