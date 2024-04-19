@@ -1116,6 +1116,15 @@ pub enum AtomicFunctionNoReturn {
     Max,
 }
 
+impl AtomicFunctionNoReturn {
+    const fn with_return(self) -> AtomicFunction {
+        match self {
+            Self::Min => AtomicFunction::Min,
+            Self::Max => AtomicFunction::Max,
+        }
+    }
+}
+
 /// Hint at which precision to compute a derivative.
 #[derive(Clone, Copy, Debug, Hash, Eq, Ord, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serialize", derive(Serialize))]

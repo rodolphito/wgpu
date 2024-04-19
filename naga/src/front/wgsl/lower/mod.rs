@@ -2087,64 +2087,27 @@ impl<'source, 'temp> Lowerer<'source, 'temp> {
                     return Ok(Some(
                         self.subgroup_gather_helper(span, mode, arguments, ctx)?,
                     ));
+                } else if let Some(fun) = crate::AtomicFunctionNoReturn::map(function.name) {
+                    let mut args = ctx.prepare_args(arguments, 3, span);
+                    args.next()?;
+                    let value = self.expression(args.next()?, ctx)?;
+
+                    if match *resolve_inner!(ctx, value) {
+                        crate::TypeInner::Scalar(crate::Scalar { width: 8, .. }) => is_statement,
+                        _ => false,
+                    } {
+                        self.atomic_no_return_helper(span, fun, arguments, ctx)?;
+                        return Ok(None);
+                    } else {
+                        return Ok(Some(self.atomic_helper(
+                            span,
+                            fun.with_return(),
+                            arguments,
+                            ctx,
+                        )?));
+                    }
                 } else if let Some(fun) = crate::AtomicFunction::map(function.name) {
-                    return Ok(match fun {
-                        crate::AtomicFunction::Min => {
-                            let mut args = ctx.prepare_args(arguments, 3, span);
-                            args.next()?;
-                            let value = self.expression(args.next()?, ctx)?;
-
-                            if match *resolve_inner!(ctx, value) {
-                                crate::TypeInner::Scalar(crate::Scalar { width: 8, .. }) => {
-                                    is_statement
-                                }
-                                _ => false,
-                            } {
-                                self.atomic_no_return_helper(
-                                    span,
-                                    crate::AtomicFunctionNoReturn::Min,
-                                    arguments,
-                                    ctx,
-                                )?;
-                                None
-                            } else {
-                                Some(self.atomic_helper(
-                                    span,
-                                    crate::AtomicFunction::Min,
-                                    arguments,
-                                    ctx,
-                                )?)
-                            }
-                        }
-                        crate::AtomicFunction::Max => {
-                            let mut args = ctx.prepare_args(arguments, 3, span);
-                            args.next()?;
-                            let value = self.expression(args.next()?, ctx)?;
-
-                            if match *resolve_inner!(ctx, value) {
-                                crate::TypeInner::Scalar(crate::Scalar { width: 8, .. }) => {
-                                    is_statement
-                                }
-                                _ => false,
-                            } {
-                                self.atomic_no_return_helper(
-                                    span,
-                                    crate::AtomicFunctionNoReturn::Max,
-                                    arguments,
-                                    ctx,
-                                )?;
-                                None
-                            } else {
-                                Some(self.atomic_helper(
-                                    span,
-                                    crate::AtomicFunction::Max,
-                                    arguments,
-                                    ctx,
-                                )?)
-                            }
-                        }
-                        _ => Some(self.atomic_helper(span, fun, arguments, ctx)?),
-                    });
+                    return Ok(Some(self.atomic_helper(span, fun, arguments, ctx)?));
                 } else {
                     match function.name {
                         "select" => {
@@ -3033,7 +2996,7 @@ impl<'source, 'temp> Lowerer<'source, 'temp> {
 }
 
 impl crate::AtomicFunction {
-    pub fn map(word: &str) -> Option<Self> {
+    fn map(word: &str) -> Option<Self> {
         Some(match word {
             "atomicAdd" => crate::AtomicFunction::Add,
             "atomicSub" => crate::AtomicFunction::Subtract,
@@ -3043,6 +3006,16 @@ impl crate::AtomicFunction {
             "atomicMin" => crate::AtomicFunction::Min,
             "atomicMax" => crate::AtomicFunction::Max,
             "atomicExchange" => crate::AtomicFunction::Exchange { compare: None },
+            _ => return None,
+        })
+    }
+}
+
+impl crate::AtomicFunctionNoReturn {
+    fn map(word: &str) -> Option<Self> {
+        Some(match word {
+            "atomicMin" => crate::AtomicFunctionNoReturn::Min,
+            "atomicMax" => crate::AtomicFunctionNoReturn::Max,
             _ => return None,
         })
     }

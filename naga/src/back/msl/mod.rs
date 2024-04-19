@@ -565,15 +565,8 @@ impl crate::AtomicFunction {
 impl crate::AtomicFunctionNoReturn {
     const fn to_msl(self) -> &'static str {
         match self {
-            Self::Min => "fetch_min",
-            Self::Max => "fetch_max",
-        }
-    }
-
-    const fn with_return(self) -> crate::AtomicFunction {
-        match self {
-            Self::Min => crate::AtomicFunction::Min,
-            Self::Max => crate::AtomicFunction::Max,
+            Self::Min => "min",
+            Self::Max => "max",
         }
     }
 }
