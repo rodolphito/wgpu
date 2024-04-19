@@ -1117,7 +1117,7 @@ pub enum AtomicFunctionNoReturn {
 }
 
 impl AtomicFunctionNoReturn {
-    const fn with_return(self) -> AtomicFunction {
+    pub const fn with_return(self) -> AtomicFunction {
         match self {
             Self::Min => AtomicFunction::Min,
             Self::Max => AtomicFunction::Max,
