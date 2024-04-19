@@ -2190,6 +2190,64 @@ impl<'source, 'temp> Lowerer<'source, 'temp> {
                                 .push(crate::Statement::Store { pointer, value }, span);
                             return Ok(None);
                         }
+                        "atomicCompareExchangeWeak" => {
+                            let mut args = ctx.prepare_args(arguments, 3, span);
+
+                            let pointer = self.atomic_pointer(args.next()?, ctx)?;
+
+                            let compare = self.expression(args.next()?, ctx)?;
+
+                            let value = args.next()?;
+                            let value_span = ctx.ast_expressions.get_span(value);
+                            let value = self.expression(value, ctx)?;
+
+                            args.finish()?;
+
+                            let expression = match *resolve_inner!(ctx, value) {
+                                crate::TypeInner::Scalar(scalar) => {
+                                    crate::Expression::AtomicResult {
+                                        ty: ctx.module.generate_predeclared_type(
+                                            crate::PredeclaredType::AtomicCompareExchangeWeakResult(
+                                                scalar,
+                                            ),
+                                        ),
+                                        comparison: true,
+                                    }
+                                }
+                                _ => return Err(Error::InvalidAtomicOperandType(value_span)),
+                            };
+
+                            let result = ctx.interrupt_emitter(expression, span)?;
+                            let rctx = ctx.runtime_expression_ctx(span)?;
+                            rctx.block.push(
+                                crate::Statement::Atomic {
+                                    pointer,
+                                    fun: crate::AtomicFunction::Exchange {
+                                        compare: Some(compare),
+                                    },
+                                    value,
+                                    result,
+                                },
+                                span,
+                            );
+                            return Ok(Some(result));
+                        }
+                        "storageBarrier" => {
+                            ctx.prepare_args(arguments, 0, span).finish()?;
+
+                            let rctx = ctx.runtime_expression_ctx(span)?;
+                            rctx.block
+                                .push(crate::Statement::Barrier(crate::Barrier::STORAGE), span);
+                            return Ok(None);
+                        }
+                        "workgroupBarrier" => {
+                            ctx.prepare_args(arguments, 0, span).finish()?;
+
+                            let rctx = ctx.runtime_expression_ctx(span)?;
+                            rctx.block
+                                .push(crate::Statement::Barrier(crate::Barrier::WORK_GROUP), span);
+                            return Ok(None);
+                        }
                         "subgroupBarrier" => {
                             ctx.prepare_args(arguments, 0, span).finish()?;
 
