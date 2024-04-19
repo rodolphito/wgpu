@@ -2996,7 +2996,7 @@ impl<'source, 'temp> Lowerer<'source, 'temp> {
 }
 
 impl crate::AtomicFunction {
-    fn map(word: &str) -> Option<Self> {
+    pub fn map(word: &str) -> Option<Self> {
         Some(match word {
             "atomicAdd" => crate::AtomicFunction::Add,
             "atomicSub" => crate::AtomicFunction::Subtract,
@@ -3012,7 +3012,7 @@ impl crate::AtomicFunction {
 }
 
 impl crate::AtomicFunctionNoReturn {
-    fn map(word: &str) -> Option<Self> {
+    pub fn map(word: &str) -> Option<Self> {
         Some(match word {
             "atomicMin" => crate::AtomicFunctionNoReturn::Min,
             "atomicMax" => crate::AtomicFunctionNoReturn::Max,
