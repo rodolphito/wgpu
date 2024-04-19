@@ -68,7 +68,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ee91c0c2905bae44f84bfa4e044536541df26b7703fd0888deeb9060fcc44289"
 dependencies = [
  "android-properties",
- "bitflags 2.4.2",
+ "bitflags 2.5.0",
  "cc",
  "cesu8",
  "jni",
@@ -328,9 +328,9 @@ checksum = "bef38d45163c2f1dde094a7dfd33ccf595c92905c8f8f4fdc18d06fb1037718a"
 
 [[package]]
 name = "bitflags"
-version = "2.4.2"
+version = "2.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ed570934406eb16438a4e976b1b4500774099c13b8cb96eec99f620f05090ddf"
+checksum = "cf4b9d6a944f767f8e5e0db018570623c85f3d925ac718db4e06d0187adb21c1"
 dependencies = [
  "arbitrary",
  "serde",
@@ -419,7 +419,7 @@ version = "0.12.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fba7adb4dd5aa98e5553510223000e7148f621165ec5f9acd7113f6ca4995298"
 dependencies = [
- "bitflags 2.4.2",
+ "bitflags 2.5.0",
  "log",
  "polling",
  "rustix",
@@ -537,7 +537,7 @@ version = "4.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "307bc0538d5f0f83b8248db3087aa92fe504e4691294d0c96c0eabc33f47ba47"
 dependencies = [
- "heck",
+ "heck 0.4.1",
  "proc-macro2",
  "quote",
  "syn 2.0.52",
@@ -918,7 +918,7 @@ checksum = "96a6ac251f4a2aca6b3f91340350eab87ae57c3f127ffeb585e92bd336717991"
 name = "d3d12"
 version = "0.19.0"
 dependencies = [
- "bitflags 2.4.2",
+ "bitflags 2.5.0",
  "libloading 0.8.3",
  "winapi",
 ]
@@ -1648,7 +1648,7 @@ version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fbcd2dba93594b227a1f57ee09b8b9da8892c34d55aa332e034a228d0fe6a171"
 dependencies = [
- "bitflags 2.4.2",
+ "bitflags 2.5.0",
  "gpu-alloc-types",
 ]
 
@@ -1658,7 +1658,7 @@ version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "98ff03b468aa837d70984d55f5d3f846f6ec31fe34bbb97c4f85219caeee1ca4"
 dependencies = [
- "bitflags 2.4.2",
+ "bitflags 2.5.0",
 ]
 
 [[package]]
@@ -1676,22 +1676,22 @@ dependencies = [
 
 [[package]]
 name = "gpu-descriptor"
-version = "0.2.4"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cc11df1ace8e7e564511f53af41f3e42ddc95b56fd07b3f4445d2a6048bc682c"
+checksum = "9c08c1f623a8d0b722b8b99f821eb0ba672a1618f0d3b16ddbee1cedd2dd8557"
 dependencies = [
- "bitflags 2.4.2",
+ "bitflags 2.5.0",
  "gpu-descriptor-types",
  "hashbrown",
 ]
 
 [[package]]
 name = "gpu-descriptor-types"
-version = "0.1.2"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6bf0b36e6f090b7e1d8a4b49c0cb81c1f8376f72198c65dd3ad9ff3556b8b78c"
+checksum = "fdf242682df893b86f33a73828fb09ca4b2d3bb6cc95249707fc684d27484b91"
 dependencies = [
- "bitflags 2.4.2",
+ "bitflags 2.5.0",
 ]
 
 [[package]]
@@ -1729,7 +1729,7 @@ version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "af2a7e73e1f34c48da31fb668a907f250794837e08faa144fd24f0b8b741e890"
 dependencies = [
- "bitflags 2.4.2",
+ "bitflags 2.5.0",
  "com",
  "libc",
  "libloading 0.8.3",
@@ -1743,6 +1743,12 @@ name = "heck"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "95505c38b4572b2d910cecb0281560f54b440a19336cbbcb27bf6ce6adc6f5a8"
+
+[[package]]
+name = "heck"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
 
 [[package]]
 name = "hermit-abi"
@@ -1990,7 +1996,7 @@ version = "0.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3af92c55d7d839293953fcd0fda5ecfe93297cfde6ffbdec13b41d99c0ba6607"
 dependencies = [
- "bitflags 2.4.2",
+ "bitflags 2.5.0",
  "libc",
  "redox_syscall 0.4.1",
 ]
@@ -2090,7 +2096,7 @@ name = "metal"
 version = "0.27.0"
 source = "git+https://github.com/gfx-rs/metal-rs?rev=ff8fd3d6dc7792852f8a015458d7e6d42d7fb352#ff8fd3d6dc7792852f8a015458d7e6d42d7fb352"
 dependencies = [
- "bitflags 2.4.2",
+ "bitflags 2.5.0",
  "block",
  "core-graphics-types",
  "foreign-types 0.5.0",
@@ -2123,13 +2129,13 @@ dependencies = [
 
 [[package]]
 name = "naga"
-version = "0.19.0"
+version = "0.19.2"
 dependencies = [
  "arbitrary",
  "arrayvec 0.7.4",
  "bincode",
  "bit-set",
- "bitflags 2.4.2",
+ "bitflags 2.5.0",
  "codespan-reporting",
  "criterion",
  "diff",
@@ -2155,6 +2161,7 @@ dependencies = [
 name = "naga-cli"
 version = "0.19.0"
 dependencies = [
+ "anyhow",
  "argh",
  "bincode",
  "codespan-reporting",
@@ -2216,7 +2223,7 @@ version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2076a31b7010b17a38c01907c45b945e8f11495ee4dd588309718901b1f7a5b7"
 dependencies = [
- "bitflags 2.4.2",
+ "bitflags 2.5.0",
  "jni-sys",
  "log",
  "ndk-sys 0.5.0+25.2.9519653",
@@ -2610,7 +2617,7 @@ checksum = "d231b230927b5e4ad203db57bbcbee2802f6bce620b1e4a9024a07d94e2907ec"
 
 [[package]]
 name = "player"
-version = "0.19.0"
+version = "0.19.3"
 dependencies = [
  "env_logger",
  "log",
@@ -2904,7 +2911,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b91f7eff05f748767f183df4320a63d6936e9c6107d97c9e6bdd9784f4289c94"
 dependencies = [
  "base64",
- "bitflags 2.4.2",
+ "bitflags 2.5.0",
  "serde",
  "serde_derive",
 ]
@@ -2954,7 +2961,7 @@ version = "0.38.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6ea3e1a662af26cd7a3ba09c0297a31af215563ecf42817c98df621387f4e949"
 dependencies = [
- "bitflags 2.4.2",
+ "bitflags 2.5.0",
  "errno",
  "libc",
  "linux-raw-sys",
@@ -3051,18 +3058,18 @@ checksum = "388a1df253eca08550bef6c72392cfe7c30914bf41df5269b68cbd6ff8f570a3"
 
 [[package]]
 name = "serde"
-version = "1.0.197"
+version = "1.0.198"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3fb1c873e1b9b056a4dc4c0c198b24c3ffa059243875552b2bd0933b1aee4ce2"
+checksum = "9846a40c979031340571da2545a4e5b7c4163bdae79b301d5f86d03979451fcc"
 dependencies = [
  "serde_derive",
 ]
 
 [[package]]
 name = "serde_derive"
-version = "1.0.197"
+version = "1.0.198"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7eb0b34b42edc17f6b7cac84a52a1c5f0e1bb2227e997ca9011ea3dd34e8610b"
+checksum = "e88edab869b01783ba905e7d0153f9fc1a6505a96e4ad3018011eedb838566d9"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3071,9 +3078,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.114"
+version = "1.0.116"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c5f09b1bd632ef549eaa9f60a1f8de742bdbc698e6cee2095fc84dde5f549ae0"
+checksum = "3e17db7126d17feb94eb3fad46bf1a96b034e8aacbc2e775fe81505f8b0b2813"
 dependencies = [
  "indexmap",
  "itoa",
@@ -3199,7 +3206,7 @@ version = "0.18.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "922fd3eeab3bd820d76537ce8f582b1cf951eceb5475c28500c7457d9d17f53a"
 dependencies = [
- "bitflags 2.4.2",
+ "bitflags 2.5.0",
  "calloop 0.12.4",
  "calloop-wayland-source",
  "cursor-icon",
@@ -3277,7 +3284,7 @@ version = "0.3.0+sdk-1.3.268.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eda41003dc44290527a59b13432d4a0379379fa074b70174882adfbdfd917844"
 dependencies = [
- "bitflags 2.4.2",
+ "bitflags 2.5.0",
  "serde",
 ]
 
@@ -3320,7 +3327,7 @@ version = "0.25.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "23dc1fa9ac9c169a78ba62f0b841814b7abae11bdd047b9c58f893439e309ea0"
 dependencies = [
- "heck",
+ "heck 0.4.1",
  "proc-macro2",
  "quote",
  "rustversion",
@@ -3474,9 +3481,9 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "tokio"
-version = "1.36.0"
+version = "1.37.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "61285f6515fa018fb2d1e46eb21223fff441ee8db5d0f1435e8ab4f5cdb80931"
+checksum = "1adbebffeca75fcfd058afa480fb6c0b81e165a0323f9c9d39c9697e37c46787"
 dependencies = [
  "backtrace",
  "bytes",
@@ -3685,7 +3692,7 @@ version = "0.89.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fe2197fbef82c98f7953d13568a961d4e1c663793b5caf3c74455a13918cdf33"
 dependencies = [
- "bitflags 2.4.2",
+ "bitflags 2.5.0",
  "fslock",
  "gzip-header",
  "home",
@@ -3855,7 +3862,7 @@ version = "0.31.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "82fb96ee935c2cea6668ccb470fb7771f6215d1691746c2d896b447a00ad3f1f"
 dependencies = [
- "bitflags 2.4.2",
+ "bitflags 2.5.0",
  "rustix",
  "wayland-backend",
  "wayland-scanner 0.31.1",
@@ -3879,7 +3886,7 @@ version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "625c5029dbd43d25e6aa9615e88b829a5cad13b2819c4ae129fdbb7c31ab4c7e"
 dependencies = [
- "bitflags 2.4.2",
+ "bitflags 2.5.0",
  "cursor-icon",
  "wayland-backend",
 ]
@@ -3934,7 +3941,7 @@ version = "0.31.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8f81f365b8b4a97f422ac0e8737c438024b5951734506b0e1d775c73030561f4"
 dependencies = [
- "bitflags 2.4.2",
+ "bitflags 2.5.0",
  "wayland-backend",
  "wayland-client 0.31.2",
  "wayland-scanner 0.31.1",
@@ -3946,7 +3953,7 @@ version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "23803551115ff9ea9bce586860c5c5a971e360825a0309264102a9495a5ff479"
 dependencies = [
- "bitflags 2.4.2",
+ "bitflags 2.5.0",
  "wayland-backend",
  "wayland-client 0.31.2",
  "wayland-protocols 0.31.2",
@@ -3959,7 +3966,7 @@ version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ad1f61b76b6c2d8742e10f9ba5c3737f6530b4c243132c2a2ccc8aa96fe25cd6"
 dependencies = [
- "bitflags 2.4.2",
+ "bitflags 2.5.0",
  "wayland-backend",
  "wayland-client 0.31.2",
  "wayland-protocols 0.31.2",
@@ -4033,7 +4040,7 @@ dependencies = [
 
 [[package]]
 name = "wgpu"
-version = "0.19.0"
+version = "0.19.3"
 dependencies = [
  "arrayvec 0.7.4",
  "cfg-if",
@@ -4058,11 +4065,11 @@ dependencies = [
 
 [[package]]
 name = "wgpu-core"
-version = "0.19.0"
+version = "0.19.3"
 dependencies = [
  "arrayvec 0.7.4",
  "bit-vec",
- "bitflags 2.4.2",
+ "bitflags 2.5.0",
  "bytemuck",
  "cfg_aliases",
  "codespan-reporting",
@@ -4086,7 +4093,7 @@ dependencies = [
 
 [[package]]
 name = "wgpu-examples"
-version = "0.19.0"
+version = "0.19.3"
 dependencies = [
  "bytemuck",
  "cfg-if",
@@ -4119,13 +4126,13 @@ dependencies = [
 
 [[package]]
 name = "wgpu-hal"
-version = "0.19.0"
+version = "0.19.3"
 dependencies = [
  "android_system_properties",
  "arrayvec 0.7.4",
  "ash",
  "bit-set",
- "bitflags 2.4.2",
+ "bitflags 2.5.0",
  "block",
  "cfg-if",
  "cfg_aliases",
@@ -4167,10 +4174,10 @@ dependencies = [
 
 [[package]]
 name = "wgpu-info"
-version = "0.19.0"
+version = "0.19.3"
 dependencies = [
  "anyhow",
- "bitflags 2.4.2",
+ "bitflags 2.5.0",
  "env_logger",
  "pico-args",
  "serde",
@@ -4181,27 +4188,27 @@ dependencies = [
 
 [[package]]
 name = "wgpu-macros"
-version = "0.19.0"
+version = "0.19.3"
 dependencies = [
- "heck",
+ "heck 0.5.0",
  "quote",
  "syn 2.0.52",
 ]
 
 [[package]]
 name = "wgpu-test"
-version = "0.19.0"
+version = "0.19.3"
 dependencies = [
  "anyhow",
  "arrayvec 0.7.4",
- "bitflags 2.4.2",
+ "bitflags 2.5.0",
  "bytemuck",
  "cfg-if",
  "console_log",
  "ctor",
  "env_logger",
  "futures-lite",
- "heck",
+ "heck 0.5.0",
  "image",
  "js-sys",
  "libtest-mimic",
@@ -4226,9 +4233,9 @@ dependencies = [
 
 [[package]]
 name = "wgpu-types"
-version = "0.19.0"
+version = "0.19.2"
 dependencies = [
- "bitflags 2.4.2",
+ "bitflags 2.5.0",
  "js-sys",
  "serde",
  "serde_json",
@@ -4587,7 +4594,7 @@ dependencies = [
  "ahash",
  "android-activity",
  "atomic-waker",
- "bitflags 2.4.2",
+ "bitflags 2.5.0",
  "bytemuck",
  "calloop 0.12.4",
  "cfg_aliases",
@@ -4688,7 +4695,7 @@ version = "0.4.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d039de8032a9a8856a6be89cea3e5d12fdd82306ab7c94d74e6deab2460651c5"
 dependencies = [
- "bitflags 2.4.2",
+ "bitflags 2.5.0",
  "dlib",
  "log",
  "once_cell",

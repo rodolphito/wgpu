@@ -37,7 +37,7 @@ impl RegistryReport {
 /// any other dependent resource
 ///
 #[derive(Debug)]
-pub struct Registry<T: Resource> {
+pub(crate) struct Registry<T: Resource> {
     identity: Arc<IdentityManager<T::Marker>>,
     storage: RwLock<Storage<T>>,
     backend: Backend,
@@ -98,9 +98,6 @@ impl<T: Resource> FutureId<'_, T> {
     /// Assign an existing resource to a new ID.
     ///
     /// Registers it with the registry.
-    ///
-    /// This _will_ leak the ID, and it will not be recycled again.
-    /// See https://github.com/gfx-rs/wgpu/issues/4912.
     pub fn assign_existing(self, value: &Arc<T>) -> Id<T::Marker> {
         let mut data = self.data.write();
         debug_assert!(!data.contains(self.id));
@@ -146,16 +143,20 @@ impl<T: Resource> Registry<T> {
     pub(crate) fn write<'a>(&'a self) -> RwLockWriteGuard<'a, Storage<T>> {
         self.storage.write()
     }
-    pub fn unregister_locked(&self, id: Id<T::Marker>, storage: &mut Storage<T>) -> Option<Arc<T>> {
+    pub(crate) fn unregister_locked(
+        &self,
+        id: Id<T::Marker>,
+        storage: &mut Storage<T>,
+    ) -> Option<Arc<T>> {
         self.identity.free(id);
         storage.remove(id)
     }
-    pub fn force_replace(&self, id: Id<T::Marker>, mut value: T) {
+    pub(crate) fn force_replace(&self, id: Id<T::Marker>, mut value: T) {
         let mut storage = self.storage.write();
         value.as_info_mut().set_id(id);
         storage.force_replace(id, value)
     }
-    pub fn force_replace_with_error(&self, id: Id<T::Marker>, label: &str) {
+    pub(crate) fn force_replace_with_error(&self, id: Id<T::Marker>, label: &str) {
         let mut storage = self.storage.write();
         storage.remove(id);
         storage.insert_error(id, label);
@@ -167,7 +168,7 @@ impl<T: Resource> Registry<T> {
         value
     }
 
-    pub fn label_for_resource(&self, id: Id<T::Marker>) -> String {
+    pub(crate) fn label_for_resource(&self, id: Id<T::Marker>) -> String {
         let guard = self.storage.read();
 
         let type_name = guard.kind();
