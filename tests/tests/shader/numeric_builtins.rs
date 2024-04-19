@@ -52,6 +52,39 @@ static NUMERIC_BUILTINS: GpuTestConfiguration = GpuTestConfiguration::new()
         )
     });
 
+fn create_int64_atomic_all_ops_test() -> Vec<ShaderTest> {
+    let mut tests = Vec::new();
+
+    let test = ShaderTest::new(
+        "atomicAds".into(),
+        "value: u64".into(),
+        "atomicAdd(output, 1); atomicAdd(output, 1);".into(),
+        &[0],
+        &[2],
+    )
+    .output_type("atomic<u64>".into());
+
+    tests.push(test);
+
+    tests
+}
+
+#[gpu_test]
+static INT64_ATOMIC_ALL_OPS: GpuTestConfiguration = GpuTestConfiguration::new()
+    .parameters(
+        TestParameters::default()
+            .features(wgt::Features::SHADER_INT64 | wgt::Features::SHADER_INT64_ATOMIC_ALL_OPS)
+            .downlevel_flags(DownlevelFlags::COMPUTE_SHADERS)
+            .limits(Limits::downlevel_defaults()),
+    )
+    .run_async(|ctx| {
+        shader_input_output_test(
+            ctx,
+            InputStorageType::Storage,
+            create_int64_atomic_all_ops_test(),
+        )
+    });
+
 // See https://github.com/gfx-rs/wgpu/issues/5276
 /*
 fn create_int64_polyfill_test() -> Vec<ShaderTest> {

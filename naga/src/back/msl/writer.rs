@@ -2998,7 +2998,7 @@ impl<W: Write> Writer<W> {
                 } => {
                     write!(self.out, "{level}")?;
                     let fun_str =
-                        if context.expression.resolve_type(value).scalar_width() != Some(64) {
+                        if context.expression.resolve_type(value).scalar_width() != Some(8) {
                             fun.with_return().to_msl()?
                         } else {
                             fun.to_msl()
