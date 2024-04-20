@@ -56,9 +56,9 @@ fn create_int64_atomic_all_ops_test() -> Vec<ShaderTest> {
     let mut tests = Vec::new();
 
     let test = ShaderTest::new(
-        "atomicAds".into(),
+        "atomicAdd".into(),
         "value: u64".into(),
-        "atomicAdd(output, 1); atomicAdd(output, 1);".into(),
+        "atomicAdd(&output, 1lu); atomicAdd(&output, 1lu);".into(),
         &[0],
         &[2],
     )
