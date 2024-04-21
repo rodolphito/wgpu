@@ -974,6 +974,10 @@ impl Writer {
     ) -> Result<Word, Error> {
         let ty = &arena[handle];
         let id = if let Some(local) = make_local(&ty.inner) {
+            // If it's a type that needs SPIR-V capabilities, request them now,
+            // so write_type_declaration_local can stay infallible.
+            self.request_type_capabilities(&ty.inner)?;
+
             // This type can be represented as a `LocalType`, so check if we've
             // already written an instruction for it. If not, do so now, with
             // `write_type_declaration_local`.
@@ -987,10 +991,6 @@ impl Writer {
                     e.insert(id);
 
                     self.write_type_declaration_local(id, local);
-
-                    // If it's a type that needs SPIR-V capabilities, request them now,
-                    // so write_type_declaration_local can stay infallible.
-                    self.request_type_capabilities(&ty.inner)?;
 
                     id
                 }
