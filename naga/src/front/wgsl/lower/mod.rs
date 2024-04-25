@@ -2224,7 +2224,11 @@ impl<'source, 'temp> Lowerer<'source, 'temp> {
                                 image,
                                 coordinate,
                                 array_index,
-                                fun: to_atomic_no_return(&function.name),
+                                fun: match function.name {
+                                    "imageAtomicMin" => crate::AtomicFunctionNoReturn::Min,
+                                    "imageAtomicMax" => crate::AtomicFunctionNoReturn::Max,
+                                    _ => unreachable!(),
+                                },
                                 value,
                             };
                             rctx.block.push(stmt, span);
@@ -3030,31 +3034,6 @@ impl<'source, 'temp> Lowerer<'source, 'temp> {
     }
 }
 
-<<<<<<< HEAD
-fn to_atomic(name: &str) -> crate::AtomicFunction {
-    match name {
-        "atomicAdd" => crate::AtomicFunction::Add,
-        "atomicSub" => crate::AtomicFunction::Subtract,
-        "atomicAnd" => crate::AtomicFunction::And,
-        "atomicOr" => crate::AtomicFunction::InclusiveOr,
-        "atomicXor" => crate::AtomicFunction::ExclusiveOr,
-        "atomicMin" => crate::AtomicFunction::Min,
-        "atomicMax" => crate::AtomicFunction::Max,
-        "atomicExchange" => crate::AtomicFunction::Exchange { compare: None },
-        "imageAtomicMin" => crate::AtomicFunction::Min,
-        "imageAtomicMax" => crate::AtomicFunction::Max,
-        _ => unreachable!(),
-    }
-}
-
-fn to_atomic_no_return(name: &str) -> crate::AtomicFunctionNoReturn {
-    match name {
-        "atomicMin" => crate::AtomicFunctionNoReturn::Min,
-        "atomicMax" => crate::AtomicFunctionNoReturn::Max,
-        "imageAtomicMin" => crate::AtomicFunctionNoReturn::Min,
-        "imageAtomicMax" => crate::AtomicFunctionNoReturn::Max,
-        _ => unreachable!(),
-=======
 impl crate::AtomicFunction {
     pub fn map(word: &str) -> Option<Self> {
         Some(match word {
@@ -3078,6 +3057,5 @@ impl crate::AtomicFunctionNoReturn {
             "atomicMax" => crate::AtomicFunctionNoReturn::Max,
             _ => return None,
         })
->>>>>>> ad/i64-atomics
     }
 }
