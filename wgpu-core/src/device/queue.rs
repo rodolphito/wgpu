@@ -4,7 +4,7 @@ use crate::{
     api_log,
     command::{
         extract_texture_selector, validate_linear_texture_data, validate_texture_copy_range,
-        ClearError, CommandBuffer, CopySide, ImageCopyTexture, TransferError,
+        ClearError, CommandAllocator, CommandBuffer, CopySide, ImageCopyTexture, TransferError,
     },
     conv,
     device::{life::ResourceMaps, DeviceError, WaitIdleError},
@@ -14,6 +14,7 @@ use crate::{
     hal_label,
     id::{self, DeviceId, QueueId},
     init_tracker::{has_copy_partial_init_tracker_coverage, TextureInitRange},
+    lock::{rank, Mutex},
     resource::{
         Buffer, BufferAccessError, BufferMapState, DestroyedBuffer, DestroyedTexture, Resource,
         ResourceInfo, ResourceType, StagingBuffer, Texture, TextureInner,
@@ -22,7 +23,6 @@ use crate::{
 };
 
 use hal::{CommandEncoder as _, Device as _, Queue as _};
-use parking_lot::Mutex;
 use smallvec::SmallVec;
 
 use std::{
@@ -152,8 +152,11 @@ pub enum TempResource<A: HalApi> {
     Texture(Arc<Texture<A>>),
 }
 
-/// A series of [`CommandBuffers`] that have been submitted to a
+/// A series of raw [`CommandBuffer`]s that have been submitted to a
 /// queue, and the [`wgpu_hal::CommandEncoder`] that built them.
+///
+/// [`CommandBuffer`]: hal::Api::CommandBuffer
+/// [`wgpu_hal::CommandEncoder`]: hal::CommandEncoder
 pub(crate) struct EncoderInFlight<A: HalApi> {
     raw: A::CommandEncoder,
     cmd_buffers: Vec<A::CommandBuffer>,
@@ -197,6 +200,8 @@ pub(crate) struct PendingWrites<A: HalApi> {
     /// True if `command_encoder` is in the "recording" state, as
     /// described in the docs for the [`wgpu_hal::CommandEncoder`]
     /// trait.
+    ///
+    /// [`wgpu_hal::CommandEncoder`]: hal::CommandEncoder
     pub is_recording: bool,
 
     pub temp_resources: Vec<TempResource<A>>,
@@ -258,7 +263,7 @@ impl<A: HalApi> PendingWrites<A> {
     #[must_use]
     fn post_submit(
         &mut self,
-        command_allocator: &mut super::CommandAllocator<A>,
+        command_allocator: &CommandAllocator<A>,
         device: &A::Device,
         queue: &A::Queue,
     ) -> Option<EncoderInFlight<A>> {
@@ -312,7 +317,7 @@ fn prepare_staging_buffer<A: HalApi>(
     let mapping = unsafe { device.raw().map_buffer(&buffer, 0..size) }?;
 
     let staging_buffer = StagingBuffer {
-        raw: Mutex::new(Some(buffer)),
+        raw: Mutex::new(rank::STAGING_BUFFER_RAW, Some(buffer)),
         device: device.clone(),
         size,
         info: ResourceInfo::new(
@@ -1530,7 +1535,7 @@ impl Global {
 
             profiling::scope!("cleanup");
             if let Some(pending_execution) = pending_writes.post_submit(
-                device.command_allocator.lock().as_mut().unwrap(),
+                &device.command_allocator,
                 device.raw(),
                 queue.raw.as_ref().unwrap(),
             ) {

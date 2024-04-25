@@ -328,7 +328,6 @@ impl super::Validator {
                     TypeFlags::DATA
                         | TypeFlags::SIZED
                         | TypeFlags::COPY
-                        | TypeFlags::HOST_SHAREABLE
                         | TypeFlags::ARGUMENT
                         | TypeFlags::CONSTRUCTIBLE
                         | shareable,
@@ -364,11 +363,10 @@ impl super::Validator {
                     }
                     crate::ScalarKind::Sint | crate::ScalarKind::Uint => {
                         if width == 8 {
-                            if self.capabilities.intersects(
+                            if !self.capabilities.intersects(
                                 Capabilities::SHADER_INT64_ATOMIC_ALL_OPS
                                     | Capabilities::SHADER_INT64_ATOMIC_MIN_MAX,
                             ) {
-                            } else {
                                 return Err(TypeError::MissingCapability(
                                     Capabilities::SHADER_INT64_ATOMIC_ALL_OPS,
                                 ));

@@ -153,6 +153,12 @@ impl ShaderTest {
         self
     }
 
+    fn output_type(mut self, output_type: String) -> Self {
+        self.output_type = output_type;
+
+        self
+    }
+
     /// Add another set of possible outputs. If any of the given
     /// output values are seen it's considered a success (i.e. this is OR, not AND).
     ///
@@ -307,7 +313,7 @@ async fn shader_input_output_test(
                 layout: Some(&pll),
                 module: &sm,
                 entry_point: "cs_main",
-                constants: &Default::default(),
+                compilation_options: Default::default(),
             });
 
         // -- Initializing data --
