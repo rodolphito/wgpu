@@ -817,6 +817,11 @@ impl super::PrivateCapabilities {
                 && (device.supports_family(MTLGPUFamily::Metal3)
                     || device.supports_family(MTLGPUFamily::Mac2)
                     || device.supports_family(MTLGPUFamily::Apple7)),
+            // https://developer.apple.com/metal/Metal-Feature-Set-Tables.pdf#page=6
+            int64_atomics: family_check
+                && ((device.supports_family(MTLGPUFamily::Apple8)
+                    && device.supports_family(MTLGPUFamily::Mac2))
+                    || device.supports_family(MTLGPUFamily::Apple9)),
         }
     }
 
@@ -894,7 +899,7 @@ impl super::PrivateCapabilities {
         );
         features.set(
             F::SHADER_INT64_ATOMIC_MIN_MAX,
-            self.msl_version >= MTLLanguageVersion::V2_4,
+            self.int64_atomics && self.msl_version >= MTLLanguageVersion::V2_4,
         );
 
         features.set(
