@@ -1162,15 +1162,20 @@ impl super::Validator {
                                 }
                             }
                             match class {
-                                crate::ImageClass::Storage { format, .. } => {
-                                    crate::TypeInner::Vector {
-                                        size: crate::VectorSize::Quad,
-                                        scalar: crate::Scalar {
-                                            kind: format.into(),
-                                            width: 4,
-                                        },
-                                    }
-                                }
+                                crate::ImageClass::Storage {
+                                    format: crate::StorageFormat::R64Uint,
+                                    ..
+                                } => crate::TypeInner::Scalar(crate::Scalar {
+                                    kind: crate::ScalarKind::Uint,
+                                    width: 8,
+                                }),
+                                crate::ImageClass::Storage {
+                                    format: crate::StorageFormat::R32Uint,
+                                    ..
+                                } => crate::TypeInner::Scalar(crate::Scalar {
+                                    kind: crate::ScalarKind::Uint,
+                                    width: 4,
+                                }),
                                 _ => {
                                     return Err(FunctionError::InvalidImageStore(
                                         ExpressionError::InvalidImageClass(class),
