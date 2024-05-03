@@ -127,9 +127,6 @@ pub struct Device<A: HalApi> {
     pub(crate) tracker_indices: TrackerIndexAllocators,
     // Life tracker should be locked right after the device and before anything else.
     life_tracker: Mutex<LifetimeTracker<A>>,
-    /// Temporary storage for resource management functions. Cleared at the end
-    /// of every call (unless an error occurs).
-    pub(crate) temp_suspected: Mutex<Option<ResourceMaps<A>>>,
     /// Pool of bind group layouts, allowing deduplication.
     pub(crate) bgl_pool: ResourcePool<bgl::EntryMap, BindGroupLayout<A>>,
     pub(crate) alignments: hal::Alignments,
@@ -142,6 +139,10 @@ pub struct Device<A: HalApi> {
     #[cfg(feature = "trace")]
     pub(crate) trace: Mutex<Option<trace::Trace>>,
     pub(crate) usage_scopes: UsageScopePool<A>,
+
+    /// Temporary storage, cleared at the start of every call,
+    /// retained only to save allocations.
+    temp_suspected: Mutex<Option<ResourceMaps<A>>>,
 }
 
 pub(crate) enum DeferredDestroy<A: HalApi> {
@@ -397,11 +398,12 @@ impl<A: HalApi> Device<A> {
     ///   return it to our callers.)
     pub(crate) fn maintain<'this>(
         &'this self,
-        fence: &A::Fence,
+        fence_guard: crate::lock::RwLockReadGuard<Option<A::Fence>>,
         maintain: wgt::Maintain<queue::WrappedSubmissionIndex>,
         snatch_guard: SnatchGuard,
     ) -> Result<(UserClosures, bool), WaitIdleError> {
         profiling::scope!("Device::maintain");
+        let fence = fence_guard.as_ref().unwrap();
         let last_done_index = if maintain.is_wait() {
             let index_to_wait_for = match maintain {
                 wgt::Maintain::WaitForSubmissionIndex(submission_index) => {
@@ -433,23 +435,9 @@ impl<A: HalApi> Device<A> {
         let submission_closures =
             life_tracker.triage_submissions(last_done_index, &self.command_allocator);
 
-        {
-            // Normally, `temp_suspected` exists only to save heap
-            // allocations: it's cleared at the start of the function
-            // call, and cleared by the end. But `Global::queue_submit` is
-            // fallible; if it exits early, it may leave some resources in
-            // `temp_suspected`.
-            let temp_suspected = self
-                .temp_suspected
-                .lock()
-                .replace(ResourceMaps::new())
-                .unwrap();
+        life_tracker.triage_suspected(&self.trackers);
 
-            life_tracker.suspected_resources.extend(temp_suspected);
-
-            life_tracker.triage_suspected(&self.trackers);
-            life_tracker.triage_mapped();
-        }
+        life_tracker.triage_mapped();
 
         let mapping_closures =
             life_tracker.handle_mapping(self.raw(), &self.trackers, &snatch_guard);
@@ -481,6 +469,7 @@ impl<A: HalApi> Device<A> {
 
         // Don't hold the locks while calling release_gpu_resources.
         drop(life_tracker);
+        drop(fence_guard);
         drop(snatch_guard);
 
         if should_release_gpu_resource {
