@@ -102,7 +102,7 @@ pub struct PhysicalDeviceFeatures {
     zero_initialize_workgroup_memory:
         Option<vk::PhysicalDeviceZeroInitializeWorkgroupMemoryFeatures>,
 
-    /// Features provided by `VK_KHR_shader_atomic_int64`, promoted to Vulkan 1.3.
+    /// Features provided by `VK_KHR_shader_atomic_int64`, promoted to Vulkan 1.2.
     shader_int64_atomic: Option<vk::PhysicalDeviceShaderAtomicInt64Features>,
 
     /// Features provided by `VK_EXT_subgroup_size_control`, promoted to Vulkan 1.3.
@@ -446,8 +446,8 @@ impl PhysicalDeviceFeatures {
             } else {
                 None
             },
-            shader_int64_atomic: if device_api_version >= vk::API_VERSION_1_1
-                || enabled_extensions.contains(&vk::KhrGetPhysicalDeviceProperties2Fn::name())
+            shader_int64_atomic: if device_api_version >= vk::API_VERSION_1_2
+                || enabled_extensions.contains(&vk::KhrShaderAtomicInt64Fn::name())
             {
                 Some(
                     vk::PhysicalDeviceShaderAtomicInt64Features::builder()
