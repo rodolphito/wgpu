@@ -111,7 +111,7 @@ pub struct PhysicalDeviceFeatures {
         Option<vk::PhysicalDeviceZeroInitializeWorkgroupMemoryFeatures<'static>>,
 
     /// Features provided by `VK_KHR_shader_atomic_int64`, promoted to Vulkan 1.2.
-    shader_int64_atomic: Option<vk::PhysicalDeviceShaderAtomicInt64Features>,
+    shader_int64_atomic: Option<vk::PhysicalDeviceShaderAtomicInt64Features<'static>>,
 
     /// Features provided by `VK_EXT_subgroup_size_control`, promoted to Vulkan 1.3.
     subgroup_size_control: Option<vk::PhysicalDeviceSubgroupSizeControlFeatures<'static>>,
@@ -430,12 +430,12 @@ impl PhysicalDeviceFeatures {
                 None
             },
             shader_int64_atomic: if device_api_version >= vk::API_VERSION_1_2
-                || enabled_extensions.contains(&vk::KhrShaderAtomicInt64Fn::name())
+                || enabled_extensions.contains(&khr::shader_atomic_int64::NAME)
             {
                 Some(
-                    vk::PhysicalDeviceShaderAtomicInt64Features::builder()
+                    vk::PhysicalDeviceShaderAtomicInt64Features::default()
                         .shader_buffer_int64_atomics(true)
-                        .build(),
+                        ,
                 )
             } else {
                 None
@@ -582,7 +582,7 @@ impl PhysicalDeviceFeatures {
 
         features.set(
             F::SHADER_INT64_ATOMIC_ALL_OPS | F::SHADER_INT64_ATOMIC_MIN_MAX,
-            caps.supports_extension(vk::KhrShaderAtomicInt64Fn::name()),
+            caps.supports_extension(khr::shader_atomic_int64::NAME),
         );
 
         //if caps.supports_extension(khr::sampler_mirror_clamp_to_edge::NAME) {
@@ -994,7 +994,7 @@ impl PhysicalDeviceProperties {
         if requested_features.intersects(
             wgt::Features::SHADER_INT64_ATOMIC_ALL_OPS | wgt::Features::SHADER_INT64_ATOMIC_MIN_MAX,
         ) {
-            extensions.push(vk::KhrShaderAtomicInt64Fn::name());
+            extensions.push(khr::shader_atomic_int64::NAME);
         }
 
         extensions
