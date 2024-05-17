@@ -434,8 +434,7 @@ impl PhysicalDeviceFeatures {
             {
                 Some(
                     vk::PhysicalDeviceShaderAtomicInt64Features::default()
-                        .shader_buffer_int64_atomics(true)
-                        ,
+                        .shader_buffer_int64_atomics(true),
                 )
             } else {
                 None
