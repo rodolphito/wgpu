@@ -114,9 +114,9 @@ bitflags::bitflags! {
         const SUBGROUP = 0x10000;
         /// Support for subgroup barriers.
         const SUBGROUP_BARRIER = 0x20000;
-        /// Support for 64-bit integer atomics.
+        /// Support for 64-bit integer min and max atomics.
         const SHADER_INT64_ATOMIC_MIN_MAX = 0x40000;
-        /// Support for 64-bit integer atomics.
+        /// Support for all 64-bit integer atomics.
         const SHADER_INT64_ATOMIC_ALL_OPS = 0x80000;
     }
 }

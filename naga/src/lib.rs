@@ -1117,15 +1117,6 @@ pub enum AtomicFunctionNoReturn {
     Max,
 }
 
-impl AtomicFunctionNoReturn {
-    pub const fn with_return(self) -> AtomicFunction {
-        match self {
-            Self::Min => AtomicFunction::Min,
-            Self::Max => AtomicFunction::Max,
-        }
-    }
-}
-
 /// Hint at which precision to compute a derivative.
 #[derive(Clone, Copy, Debug, Hash, Eq, Ord, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serialize", derive(Serialize))]
@@ -1920,10 +1911,20 @@ pub enum Statement {
         result: Handle<Expression>,
     },
     /// Atomic function with no return value.
+    /// This exists because Metal does not support atomics with return values on 64 bit integers,
+    /// so we need a separate type of atomic operation which cannot return to support that.
+    /// This is the more portable kind of 64 bit atomic operation exposed by [`SHADER_INT64_ATOMIC_MIN_MAX`]
+    /// it provides only Min and Max atomics with no return value, as opposed to [`SHADER_INT64_ATOMIC_ALL_OPS`]
+    /// which provides all standard atomics on int64 on Vulkan and DirectX
+    ///
+    /// [`SHADER_INT64_ATOMIC_MIN_MAX`]: valid::Capabilities::SHADER_INT64_ATOMIC_MIN_MAX
+    /// [`SHADER_INT64_ATOMIC_ALL_OPS`]: valid::Capabilities::SHADER_INT64_ATOMIC_ALL_OPS
     AtomicNoReturn {
         /// Pointer to an atomic value.
+        /// This has the same semantics as [`Statement::Atomic`]
         pointer: Handle<Expression>,
         /// Function to run on the atomic.
+        /// This can only be Min or Max, because that is what Metal supports for 64 bit integers.
         fun: AtomicFunctionNoReturn,
         /// Value to use in the function.
         value: Handle<Expression>,

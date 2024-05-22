@@ -569,6 +569,15 @@ impl crate::Function {
     }
 }
 
+impl crate::AtomicFunctionNoReturn {
+    pub const fn with_return(self) -> crate::AtomicFunction {
+        match self {
+            Self::Min => crate::AtomicFunction::Min,
+            Self::Max => crate::AtomicFunction::Max,
+        }
+    }
+}
+
 impl crate::SampleLevel {
     pub const fn implicit_derivatives(&self) -> bool {
         match *self {
