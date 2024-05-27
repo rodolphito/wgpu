@@ -314,14 +314,14 @@ struct LookupVariable {
     type_id: spirv::Word,
 }
 
-/// Information about SPIR-V result ids, stored in `Parser::lookup_expression`.
+/// Information about SPIR-V result ids, stored in `Frontend::lookup_expression`.
 #[derive(Clone, Debug)]
 struct LookupExpression {
     /// The `Expression` constructed for this result.
     ///
     /// Note that, while a SPIR-V result id can be used in any block dominated
     /// by its definition, a Naga `Expression` is only in scope for the rest of
-    /// its subtree. `Parser::get_expr_handle` takes care of spilling the result
+    /// its subtree. `Frontend::get_expr_handle` takes care of spilling the result
     /// to a `LocalVariable` which can then be used anywhere.
     handle: Handle<crate::Expression>,
 
@@ -579,7 +579,6 @@ pub struct Frontend<I> {
     lookup_type: FastHashMap<spirv::Word, LookupType>,
     lookup_void_type: Option<spirv::Word>,
     lookup_storage_buffer_types: FastHashMap<Handle<crate::Type>, crate::StorageAccess>,
-    // Lookup for samplers and sampled images, storing flags on how they are used.
     lookup_constant: FastHashMap<spirv::Word, LookupConstant>,
     lookup_variable: FastHashMap<spirv::Word, LookupVariable>,
     lookup_expression: FastHashMap<spirv::Word, LookupExpression>,

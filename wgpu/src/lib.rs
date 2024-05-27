@@ -3547,6 +3547,30 @@ impl Buffer {
         }
     }
 
+    /// Returns the inner hal Buffer using a callback. The hal buffer will be `None` if the
+    /// backend type argument does not match with this wgpu Buffer
+    ///
+    /// # Safety
+    ///
+    /// - The raw handle obtained from the hal Buffer must not be manually destroyed
+    #[cfg(wgpu_core)]
+    pub unsafe fn as_hal<A: wgc::hal_api::HalApi, F: FnOnce(Option<&A::Buffer>) -> R, R>(
+        &self,
+        hal_buffer_callback: F,
+    ) -> R {
+        let id = self.id;
+
+        if let Some(ctx) = self
+            .context
+            .as_any()
+            .downcast_ref::<crate::backend::ContextWgpuCore>()
+        {
+            unsafe { ctx.buffer_as_hal::<A, F, R>(id.into(), hal_buffer_callback) }
+        } else {
+            hal_buffer_callback(None)
+        }
+    }
+
     /// Use only a portion of this Buffer for a given operation. Choosing a range with no end
     /// will use the rest of the buffer. Using a totally unbounded range will use the entire buffer.
     pub fn slice<S: RangeBounds<BufferAddress>>(&self, bounds: S) -> BufferSlice<'_> {
@@ -4697,13 +4721,9 @@ impl<'a> RenderPass<'a> {
 impl<'a> Drop for RenderPass<'a> {
     fn drop(&mut self) {
         if !thread::panicking() {
-            let parent_id = self.parent.id.as_ref().unwrap();
-            self.parent.context.command_encoder_end_render_pass(
-                parent_id,
-                self.parent.data.as_ref(),
-                &mut self.id,
-                self.data.as_mut(),
-            );
+            self.parent
+                .context
+                .render_pass_end(&mut self.id, self.data.as_mut());
         }
     }
 }
@@ -4875,13 +4895,9 @@ impl<'a> ComputePass<'a> {
 impl<'a> Drop for ComputePass<'a> {
     fn drop(&mut self) {
         if !thread::panicking() {
-            let parent_id = self.parent.id.as_ref().unwrap();
-            self.parent.context.command_encoder_end_compute_pass(
-                parent_id,
-                self.parent.data.as_ref(),
-                &mut self.id,
-                self.data.as_mut(),
-            );
+            self.parent
+                .context
+                .compute_pass_end(&mut self.id, self.data.as_mut());
         }
     }
 }

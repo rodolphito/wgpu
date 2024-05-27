@@ -70,12 +70,12 @@ path = "./naga"
 version = "0.20.0"
 
 [workspace.dependencies]
-anyhow = "1.0.23"
+anyhow = "1.0.86"
 arrayvec = "0.7"
 bincode = "1"
 bit-vec = "0.6"
 bitflags = "2"
-bytemuck = { version = "1.14", features = ["derive"] }
+bytemuck = { version = "1.16", features = ["derive"] }
 cfg_aliases = "0.1"
 cfg-if = "1"
 criterion = "0.5"
@@ -145,7 +145,7 @@ gpu-descriptor = "0.3"
 
 # DX dependencies
 bit-set = "0.5"
-gpu-allocator = { version = "0.26", default_features = false, features = [
+gpu-allocator = { version = "0.26", default-features = false, features = [
     "d3d12",
     "public-winapi",
 ] }
