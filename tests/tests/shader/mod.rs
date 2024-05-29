@@ -15,6 +15,8 @@ use wgpu::{
 
 use wgpu_test::TestingContext;
 
+pub mod compilation_messages;
+pub mod data_builtins;
 pub mod numeric_builtins;
 pub mod struct_layout;
 pub mod zero_init_workgroup_mem;
@@ -314,6 +316,7 @@ async fn shader_input_output_test(
                 module: &sm,
                 entry_point: "cs_main",
                 compilation_options: Default::default(),
+                cache: None,
             });
 
         // -- Initializing data --

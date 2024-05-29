@@ -493,12 +493,16 @@ impl super::MathFunction {
             Self::Pack2x16snorm => 1,
             Self::Pack2x16unorm => 1,
             Self::Pack2x16float => 1,
+            Self::Pack4xI8 => 1,
+            Self::Pack4xU8 => 1,
             // data unpacking
             Self::Unpack4x8snorm => 1,
             Self::Unpack4x8unorm => 1,
             Self::Unpack2x16snorm => 1,
             Self::Unpack2x16unorm => 1,
             Self::Unpack2x16float => 1,
+            Self::Unpack4xI8 => 1,
+            Self::Unpack4xU8 => 1,
         }
     }
 }
@@ -562,6 +566,15 @@ impl crate::Function {
                 // There are no other expressions that produce pointer values.
                 _ => unreachable!(),
             }
+        }
+    }
+}
+
+impl crate::AtomicFunctionNoReturn {
+    pub const fn with_return(self) -> crate::AtomicFunction {
+        match self {
+            Self::Min => crate::AtomicFunction::Min,
+            Self::Max => crate::AtomicFunction::Max,
         }
     }
 }

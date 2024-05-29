@@ -69,32 +69,27 @@ pub use wgt::{
 /// Re-export of our `wgpu-core` dependency.
 ///
 #[cfg(wgpu_core)]
-#[doc(inline)]
 pub use ::wgc as core;
 
 /// Re-export of our `wgpu-hal` dependency.
 ///
 ///
 #[cfg(wgpu_core)]
-#[doc(inline)]
 pub use ::hal;
 
 /// Re-export of our `naga` dependency.
 ///
 #[cfg(wgpu_core)]
 #[cfg_attr(docsrs, doc(cfg(any(wgpu_core, naga))))]
-#[doc(inline)]
 // We re-export wgpu-core's re-export of naga, as we may not have direct access to it.
 pub use ::wgc::naga;
 /// Re-export of our `naga` dependency.
 ///
 #[cfg(all(not(wgpu_core), naga))]
 #[cfg_attr(docsrs, doc(cfg(any(wgpu_core, naga))))]
-#[doc(inline)]
 // If that's not available, we re-export our own.
 pub use naga;
 
-#[doc(inline)]
 /// Re-export of our `raw-window-handle` dependency.
 ///
 pub use raw_window_handle as rwh;
@@ -102,7 +97,6 @@ pub use raw_window_handle as rwh;
 /// Re-export of our `web-sys` dependency.
 ///
 #[cfg(any(webgl, webgpu))]
-#[doc(inline)]
 pub use web_sys;
 
 // wasm-only types, we try to keep as many types non-platform
@@ -812,6 +806,139 @@ impl Drop for ShaderModule {
     }
 }
 
+impl ShaderModule {
+    /// Get the compilation info for the shader module.
+    pub fn get_compilation_info(&self) -> impl Future<Output = CompilationInfo> + WasmNotSend {
+        self.context
+            .shader_get_compilation_info(&self.id, self.data.as_ref())
+    }
+}
+
+/// Compilation information for a shader module.
+///
+/// Corresponds to [WebGPU `GPUCompilationInfo`](https://gpuweb.github.io/gpuweb/#gpucompilationinfo).
+/// The source locations use bytes, and index a UTF-8 encoded string.
+#[derive(Debug, Clone)]
+pub struct CompilationInfo {
+    /// The messages from the shader compilation process.
+    pub messages: Vec<CompilationMessage>,
+}
+
+/// A single message from the shader compilation process.
+///
+/// Roughly corresponds to [`GPUCompilationMessage`](https://www.w3.org/TR/webgpu/#gpucompilationmessage),
+/// except that the location uses UTF-8 for all positions.
+#[derive(Debug, Clone)]
+pub struct CompilationMessage {
+    /// The text of the message.
+    pub message: String,
+    /// The type of the message.
+    pub message_type: CompilationMessageType,
+    /// Where in the source code the message points at.
+    pub location: Option<SourceLocation>,
+}
+
+/// The type of a compilation message.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CompilationMessageType {
+    /// An error message.
+    Error,
+    /// A warning message.
+    Warning,
+    /// An informational message.
+    Info,
+}
+
+/// A human-readable representation for a span, tailored for text source.
+///
+/// Roughly corresponds to the positional members of [`GPUCompilationMessage`][gcm] from
+/// the WebGPU specification, except
+/// - `offset` and `length` are in bytes (UTF-8 code units), instead of UTF-16 code units.
+/// - `line_position` is in bytes (UTF-8 code units), and is usually not directly intended for humans.
+///
+/// [gcm]: https://www.w3.org/TR/webgpu/#gpucompilationmessage
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub struct SourceLocation {
+    /// 1-based line number.
+    pub line_number: u32,
+    /// 1-based column in code units (in bytes) of the start of the span.
+    /// Remember to convert accordingly when displaying to the user.
+    pub line_position: u32,
+    /// 0-based Offset in code units (in bytes) of the start of the span.
+    pub offset: u32,
+    /// Length in code units (in bytes) of the span.
+    pub length: u32,
+}
+
+#[cfg(all(feature = "wgsl", wgpu_core))]
+impl From<naga::error::ShaderError<naga::front::wgsl::ParseError>> for CompilationInfo {
+    fn from(value: naga::error::ShaderError<naga::front::wgsl::ParseError>) -> Self {
+        CompilationInfo {
+            messages: vec![CompilationMessage {
+                message: value.to_string(),
+                message_type: CompilationMessageType::Error,
+                location: value.inner.location(&value.source).map(Into::into),
+            }],
+        }
+    }
+}
+#[cfg(feature = "glsl")]
+impl From<naga::error::ShaderError<naga::front::glsl::ParseErrors>> for CompilationInfo {
+    fn from(value: naga::error::ShaderError<naga::front::glsl::ParseErrors>) -> Self {
+        let messages = value
+            .inner
+            .errors
+            .into_iter()
+            .map(|err| CompilationMessage {
+                message: err.to_string(),
+                message_type: CompilationMessageType::Error,
+                location: err.location(&value.source).map(Into::into),
+            })
+            .collect();
+        CompilationInfo { messages }
+    }
+}
+
+#[cfg(feature = "spirv")]
+impl From<naga::error::ShaderError<naga::front::spv::Error>> for CompilationInfo {
+    fn from(value: naga::error::ShaderError<naga::front::spv::Error>) -> Self {
+        CompilationInfo {
+            messages: vec![CompilationMessage {
+                message: value.to_string(),
+                message_type: CompilationMessageType::Error,
+                location: None,
+            }],
+        }
+    }
+}
+
+#[cfg(any(wgpu_core, naga))]
+impl From<naga::error::ShaderError<naga::WithSpan<naga::valid::ValidationError>>>
+    for CompilationInfo
+{
+    fn from(value: naga::error::ShaderError<naga::WithSpan<naga::valid::ValidationError>>) -> Self {
+        CompilationInfo {
+            messages: vec![CompilationMessage {
+                message: value.to_string(),
+                message_type: CompilationMessageType::Error,
+                location: value.inner.location(&value.source).map(Into::into),
+            }],
+        }
+    }
+}
+
+#[cfg(any(wgpu_core, naga))]
+impl From<naga::SourceLocation> for SourceLocation {
+    fn from(value: naga::SourceLocation) -> Self {
+        SourceLocation {
+            length: value.length,
+            offset: value.offset,
+            line_number: value.line_number,
+            line_position: value.line_position,
+        }
+    }
+}
+
 /// Source of a shader module.
 ///
 /// The source will be parsed and validated.
@@ -975,6 +1102,100 @@ impl ComputePipeline {
             index,
         );
         BindGroupLayout { context, id, data }
+    }
+}
+
+/// Handle to a pipeline cache, which is used to accelerate
+/// creating [`RenderPipeline`]s and [`ComputePipeline`]s
+/// in subsequent executions
+///
+/// This reuse is only applicable for the same or similar devices.
+/// See [`util::pipeline_cache_key`] for some details.
+///
+/// # Background
+///
+/// In most GPU drivers, shader code must be converted into a machine code
+/// which can be executed on the GPU.
+/// Generating this machine code can require a lot of computation.
+/// Pipeline caches allow this computation to be reused between executions
+/// of the program.
+/// This can be very useful for reducing program startup time.
+///
+/// Note that most desktop GPU drivers will manage their own caches,
+/// meaning that little advantage can be gained from this on those platforms.
+/// However, on some platforms, especially Android, drivers leave this to the
+/// application to implement.
+///
+/// Unfortunately, drivers do not expose whether they manage their own caches.
+/// Some reasonable policies for applications to use are:
+/// - Manage their own pipeline cache on all platforms
+/// - Only manage pipeline caches on Android
+///
+/// # Usage
+///
+/// It is valid to use this resource when creating multiple pipelines, in
+/// which case it will likely cache each of those pipelines.
+/// It is also valid to create a new cache for each pipeline.
+///
+/// This resource is most useful when the data produced from it (using
+/// [`PipelineCache::get_data`]) is persisted.
+/// Care should be taken that pipeline caches are only used for the same device,
+/// as pipeline caches from compatible devices are unlikely to provide any advantage.
+/// `util::pipeline_cache_key` can be used as a file/directory name to help ensure that.
+///
+/// It is recommended to store pipeline caches atomically. If persisting to disk,
+/// this can usually be achieved by creating a temporary file, then moving/[renaming]
+/// the temporary file over the existing cache
+///
+/// # Storage Usage
+///
+/// There is not currently an API available to reduce the size of a cache.
+/// This is due to limitations in the underlying graphics APIs used.
+/// This is especially impactful if your application is being updated, so
+/// previous caches are no longer being used.
+///
+/// One option to work around this is to regenerate the cache.
+/// That is, creating the pipelines which your program runs using
+/// with the stored cached data, then recreating the *same* pipelines
+/// using a new cache, which your application then store.
+///
+/// # Implementations
+///
+/// This resource currently only works on the following backends:
+///  - Vulkan
+///
+/// This type is unique to the Rust API of `wgpu`.
+///
+/// [renaming]: std::fs::rename
+#[derive(Debug)]
+pub struct PipelineCache {
+    context: Arc<C>,
+    id: ObjectId,
+    data: Box<Data>,
+}
+
+#[cfg(send_sync)]
+static_assertions::assert_impl_all!(PipelineCache: Send, Sync);
+
+impl PipelineCache {
+    /// Get the data associated with this pipeline cache.
+    /// The data format is an implementation detail of `wgpu`.
+    /// The only defined operation on this data setting it as the `data` field
+    /// on [`PipelineCacheDescriptor`], then to [`Device::create_pipeline_cache`].
+    ///
+    /// This function is unique to the Rust API of `wgpu`.
+    pub fn get_data(&self) -> Option<Vec<u8>> {
+        self.context
+            .pipeline_cache_get_data(&self.id, self.data.as_ref())
+    }
+}
+
+impl Drop for PipelineCache {
+    fn drop(&mut self) {
+        if !thread::panicking() {
+            self.context
+                .pipeline_cache_drop(&self.id, self.data.as_ref());
+        }
     }
 }
 
@@ -1705,6 +1926,8 @@ pub struct RenderPipelineDescriptor<'a> {
     /// If the pipeline will be used with a multiview render pass, this indicates how many array
     /// layers the attachments will have.
     pub multiview: Option<NonZeroU32>,
+    /// The pipeline cache to use when creating this pipeline.
+    pub cache: Option<&'a PipelineCache>,
 }
 #[cfg(send_sync)]
 static_assertions::assert_impl_all!(RenderPipelineDescriptor<'_>: Send, Sync);
@@ -1802,9 +2025,37 @@ pub struct ComputePipelineDescriptor<'a> {
     ///
     /// This implements `Default`, and for most users can be set to `Default::default()`
     pub compilation_options: PipelineCompilationOptions<'a>,
+    /// The pipeline cache to use when creating this pipeline.
+    pub cache: Option<&'a PipelineCache>,
 }
 #[cfg(send_sync)]
 static_assertions::assert_impl_all!(ComputePipelineDescriptor<'_>: Send, Sync);
+
+/// Describes a pipeline cache, which allows reusing compilation work
+/// between program runs.
+///
+/// For use with [`Device::create_pipeline_cache`]
+///
+/// This type is unique to the Rust API of `wgpu`.
+#[derive(Clone, Debug)]
+pub struct PipelineCacheDescriptor<'a> {
+    /// Debug label of the pipeline cache. This might show up in some logs from `wgpu`
+    pub label: Label<'a>,
+    /// The data used to initialise the cache initialise
+    ///
+    /// # Safety
+    ///
+    /// This data must have been provided from a previous call to
+    /// [`PipelineCache::get_data`], if not `None`
+    pub data: Option<&'a [u8]>,
+    /// Whether to create a cache without data when the provided data
+    /// is invalid.
+    ///
+    /// Recommended to set to true
+    pub fallback: bool,
+}
+#[cfg(send_sync)]
+static_assertions::assert_impl_all!(PipelineCacheDescriptor<'_>: Send, Sync);
 
 pub use wgt::ImageCopyBuffer as ImageCopyBufferBase;
 /// View of a buffer which can be used to copy to/from a texture.
@@ -2953,6 +3204,62 @@ impl Device {
     pub fn make_invalid(&self) {
         DynContext::device_make_invalid(&*self.context, &self.id, self.data.as_ref())
     }
+
+    /// Create a [`PipelineCache`] with initial data
+    ///
+    /// This can be passed to [`Device::create_compute_pipeline`]
+    /// and [`Device::create_render_pipeline`] to either accelerate these
+    /// or add the cache results from those.
+    ///
+    /// # Safety
+    ///
+    /// If the `data` field of `desc` is set, it must have previously been returned from a call
+    /// to [`PipelineCache::get_data`][^saving]. This `data` will only be used if it came
+    /// from an adapter with the same [`util::pipeline_cache_key`].
+    /// This *is* compatible across wgpu versions, as any data format change will
+    /// be accounted for.
+    ///
+    /// It is *not* supported to bring caches from previous direct uses of backend APIs
+    /// into this method.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error value if:
+    ///  * the [`PIPELINE_CACHE`](wgt::Features::PIPELINE_CACHE) feature is not enabled
+    ///  * this device is invalid; or
+    ///  * the device is out of memory
+    ///
+    /// This method also returns an error value if:
+    ///  * The `fallback` field on `desc` is false; and
+    ///  * the `data` provided would not be used[^data_not_used]
+    ///
+    /// If an error value is used in subsequent calls, default caching will be used.
+    ///
+    /// [^saving]: We do recognise that saving this data to disk means this condition
+    /// is impossible to fully prove. Consider the risks for your own application in this case.
+    ///
+    /// [^data_not_used]: This data may be not used if: the data was produced by a prior
+    /// version of wgpu; or was created for an incompatible adapter, or there was a GPU driver
+    /// update. In some cases, the data might not be used and a real value is returned,
+    /// this is left to the discretion of GPU drivers.
+    pub unsafe fn create_pipeline_cache(
+        &self,
+        desc: &PipelineCacheDescriptor<'_>,
+    ) -> PipelineCache {
+        let (id, data) = unsafe {
+            DynContext::device_create_pipeline_cache(
+                &*self.context,
+                &self.id,
+                self.data.as_ref(),
+                desc,
+            )
+        };
+        PipelineCache {
+            context: Arc::clone(&self.context),
+            id,
+            data,
+        }
+    }
 }
 
 impl Drop for Device {
@@ -3237,6 +3544,30 @@ impl Buffer {
             buffer: self,
             offset: 0,
             size: None,
+        }
+    }
+
+    /// Returns the inner hal Buffer using a callback. The hal buffer will be `None` if the
+    /// backend type argument does not match with this wgpu Buffer
+    ///
+    /// # Safety
+    ///
+    /// - The raw handle obtained from the hal Buffer must not be manually destroyed
+    #[cfg(wgpu_core)]
+    pub unsafe fn as_hal<A: wgc::hal_api::HalApi, F: FnOnce(Option<&A::Buffer>) -> R, R>(
+        &self,
+        hal_buffer_callback: F,
+    ) -> R {
+        let id = self.id;
+
+        if let Some(ctx) = self
+            .context
+            .as_any()
+            .downcast_ref::<crate::backend::ContextWgpuCore>()
+        {
+            unsafe { ctx.buffer_as_hal::<A, F, R>(id.into(), hal_buffer_callback) }
+        } else {
+            hal_buffer_callback(None)
         }
     }
 
@@ -4390,13 +4721,9 @@ impl<'a> RenderPass<'a> {
 impl<'a> Drop for RenderPass<'a> {
     fn drop(&mut self) {
         if !thread::panicking() {
-            let parent_id = self.parent.id.as_ref().unwrap();
-            self.parent.context.command_encoder_end_render_pass(
-                parent_id,
-                self.parent.data.as_ref(),
-                &mut self.id,
-                self.data.as_mut(),
-            );
+            self.parent
+                .context
+                .render_pass_end(&mut self.id, self.data.as_mut());
         }
     }
 }
@@ -4411,7 +4738,7 @@ impl<'a> ComputePass<'a> {
     pub fn set_bind_group(
         &mut self,
         index: u32,
-        bind_group: &'a BindGroup,
+        bind_group: &BindGroup,
         offsets: &[DynamicOffset],
     ) {
         DynContext::compute_pass_set_bind_group(
@@ -4426,7 +4753,7 @@ impl<'a> ComputePass<'a> {
     }
 
     /// Sets the active compute pipeline.
-    pub fn set_pipeline(&mut self, pipeline: &'a ComputePipeline) {
+    pub fn set_pipeline(&mut self, pipeline: &ComputePipeline) {
         DynContext::compute_pass_set_pipeline(
             &*self.parent.context,
             &mut self.id,
@@ -4484,7 +4811,7 @@ impl<'a> ComputePass<'a> {
     /// The structure expected in `indirect_buffer` must conform to [`DispatchIndirectArgs`](crate::util::DispatchIndirectArgs).
     pub fn dispatch_workgroups_indirect(
         &mut self,
-        indirect_buffer: &'a Buffer,
+        indirect_buffer: &Buffer,
         indirect_offset: BufferAddress,
     ) {
         DynContext::compute_pass_dispatch_workgroups_indirect(
@@ -4568,13 +4895,9 @@ impl<'a> ComputePass<'a> {
 impl<'a> Drop for ComputePass<'a> {
     fn drop(&mut self) {
         if !thread::panicking() {
-            let parent_id = self.parent.id.as_ref().unwrap();
-            self.parent.context.command_encoder_end_compute_pass(
-                parent_id,
-                self.parent.data.as_ref(),
-                &mut self.id,
-                self.data.as_mut(),
-            );
+            self.parent
+                .context
+                .compute_pass_end(&mut self.id, self.data.as_mut());
         }
     }
 }
@@ -4858,11 +5181,24 @@ impl<'a> Drop for QueueWriteBufferView<'a> {
 impl Queue {
     /// Schedule a data write into `buffer` starting at `offset`.
     ///
-    /// This method is intended to have low performance costs.
-    /// As such, the write is not immediately submitted, and instead enqueued
-    /// internally to happen at the start of the next `submit()` call.
-    ///
     /// This method fails if `data` overruns the size of `buffer` starting at `offset`.
+    ///
+    /// This does *not* submit the transfer to the GPU immediately. Calls to
+    /// `write_buffer` begin execution only on the next call to
+    /// [`Queue::submit`]. To get a set of scheduled transfers started
+    /// immediately, it's fine to call `submit` with no command buffers at all:
+    ///
+    /// ```no_run
+    /// # let queue: wgpu::Queue = todo!();
+    /// queue.submit([]);
+    /// ```
+    ///
+    /// However, `data` will be immediately copied into staging memory, so the
+    /// caller may discard it any time after this call completes.
+    ///
+    /// If possible, consider using [`Queue::write_buffer_with`] instead. That
+    /// method avoids an intermediate copy and is often able to transfer data
+    /// more efficiently than this one.
     pub fn write_buffer(&self, buffer: &Buffer, offset: BufferAddress, data: &[u8]) {
         DynContext::queue_write_buffer(
             &*self.context,
@@ -4875,14 +5211,32 @@ impl Queue {
         )
     }
 
-    /// Schedule a data write into `buffer` starting at `offset` via the returned
-    /// [`QueueWriteBufferView`].
+    /// Write to a buffer via a directly mapped staging buffer.
     ///
-    /// Reading from this buffer is slow and will not yield the actual contents of the buffer.
+    /// Return a [`QueueWriteBufferView`] which, when dropped, schedules a copy
+    /// of its contents into `buffer` at `offset`. The returned view
+    /// dereferences to a `size`-byte long `&mut [u8]`, in which you should
+    /// store the data you would like written to `buffer`.
     ///
-    /// This method is intended to have low performance costs.
-    /// As such, the write is not immediately submitted, and instead enqueued
-    /// internally to happen at the start of the next `submit()` call.
+    /// This method may perform transfers faster than [`Queue::write_buffer`],
+    /// because the returned [`QueueWriteBufferView`] is actually the staging
+    /// buffer for the write, mapped into the caller's address space. Writing
+    /// your data directly into this staging buffer avoids the temporary
+    /// CPU-side buffer needed by `write_buffer`.
+    ///
+    /// Reading from the returned view is slow, and will not yield the current
+    /// contents of `buffer`.
+    ///
+    /// Note that dropping the [`QueueWriteBufferView`] does *not* submit the
+    /// transfer to the GPU immediately. The transfer begins only on the next
+    /// call to [`Queue::submit`] after the view is dropped. To get a set of
+    /// scheduled transfers started immediately, it's fine to call `submit` with
+    /// no command buffers at all:
+    ///
+    /// ```no_run
+    /// # let queue: wgpu::Queue = todo!();
+    /// queue.submit([]);
+    /// ```
     ///
     /// This method fails if `size` is greater than the size of `buffer` starting at `offset`.
     #[must_use]
@@ -4926,13 +5280,20 @@ impl Queue {
     ///   texture (coordinate offset, mip level) that will be overwritten.
     /// * `size` is the size, in texels, of the region to be written.
     ///
-    /// This method is intended to have low performance costs.
-    /// As such, the write is not immediately submitted, and instead enqueued
-    /// internally to happen at the start of the next `submit()` call.
-    /// However, `data` will be immediately copied into staging memory; so the caller may
-    /// discard it any time after this call completes.
-    ///
     /// This method fails if `size` overruns the size of `texture`, or if `data` is too short.
+    ///
+    /// This does *not* submit the transfer to the GPU immediately. Calls to
+    /// `write_texture` begin execution only on the next call to
+    /// [`Queue::submit`]. To get a set of scheduled transfers started
+    /// immediately, it's fine to call `submit` with no command buffers at all:
+    ///
+    /// ```no_run
+    /// # let queue: wgpu::Queue = todo!();
+    /// queue.submit([]);
+    /// ```
+    ///
+    /// However, `data` will be immediately copied into staging memory, so the
+    /// caller may discard it any time after this call completes.
     pub fn write_texture(
         &self,
         texture: ImageCopyTexture<'_>,

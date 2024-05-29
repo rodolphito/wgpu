@@ -383,6 +383,10 @@ impl FunctionInfo {
     /// refer to a global variable. Those expressions don't contribute
     /// any usage to the global themselves; that depends on how other
     /// expressions use them.
+    ///
+    /// [`assignable_global`]: ExpressionInfo::assignable_global
+    /// [`Access`]: crate::Expression::Access
+    /// [`AccessIndex`]: crate::Expression::AccessIndex
     #[must_use]
     fn add_assignable_ref(
         &mut self,
@@ -835,7 +839,7 @@ impl FunctionInfo {
                         let req = self.expressions[expr.index()].uniformity.requirements;
                         if self
                             .flags
-                            .contains(super::ValidationFlags::CONTROL_FLOW_UNIFORMITY)
+                            .contains(ValidationFlags::CONTROL_FLOW_UNIFORMITY)
                             && !req.is_empty()
                         {
                             if let Some(cause) = disruptor {

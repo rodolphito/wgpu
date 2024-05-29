@@ -274,6 +274,7 @@ pub mod back;
 mod block;
 #[cfg(feature = "compact")]
 pub mod compact;
+pub mod error;
 pub mod front;
 pub mod keywords;
 pub mod proc;
@@ -1117,15 +1118,6 @@ pub enum AtomicFunctionNoReturn {
     Max,
 }
 
-impl AtomicFunctionNoReturn {
-    pub const fn with_return(self) -> AtomicFunction {
-        match self {
-            Self::Min => AtomicFunction::Min,
-            Self::Max => AtomicFunction::Max,
-        }
-    }
-}
-
 /// Hint at which precision to compute a derivative.
 #[derive(Clone, Copy, Debug, Hash, Eq, Ord, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serialize", derive(Serialize))]
@@ -1239,12 +1231,16 @@ pub enum MathFunction {
     Pack2x16snorm,
     Pack2x16unorm,
     Pack2x16float,
+    Pack4xI8,
+    Pack4xU8,
     // data unpacking
     Unpack4x8snorm,
     Unpack4x8unorm,
     Unpack2x16snorm,
     Unpack2x16unorm,
     Unpack2x16float,
+    Unpack4xI8,
+    Unpack4xU8,
 }
 
 /// Sampling modifier to control the level of detail.
@@ -1292,13 +1288,9 @@ pub enum ImageQuery {
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
 pub enum SwizzleComponent {
-    ///
     X = 0,
-    ///
     Y = 1,
-    ///
     Z = 2,
-    ///
     W = 3,
 }
 
@@ -1920,10 +1912,20 @@ pub enum Statement {
         result: Handle<Expression>,
     },
     /// Atomic function with no return value.
+    /// This exists because Metal does not support atomics with return values on 64 bit integers,
+    /// so we need a separate type of atomic operation which cannot return to support that.
+    /// This is the more portable kind of 64 bit atomic operation exposed by [`SHADER_INT64_ATOMIC_MIN_MAX`]
+    /// it provides only Min and Max atomics with no return value, as opposed to [`SHADER_INT64_ATOMIC_ALL_OPS`]
+    /// which provides all standard atomics on int64 on Vulkan and DirectX
+    ///
+    /// [`SHADER_INT64_ATOMIC_MIN_MAX`]: valid::Capabilities::SHADER_INT64_ATOMIC_MIN_MAX
+    /// [`SHADER_INT64_ATOMIC_ALL_OPS`]: valid::Capabilities::SHADER_INT64_ATOMIC_ALL_OPS
     AtomicNoReturn {
         /// Pointer to an atomic value.
+        /// This has the same semantics as [`Statement::Atomic`]
         pointer: Handle<Expression>,
         /// Function to run on the atomic.
+        /// This can only be Min or Max, because that is what Metal supports for 64 bit integers.
         fun: AtomicFunctionNoReturn,
         /// Value to use in the function.
         value: Handle<Expression>,

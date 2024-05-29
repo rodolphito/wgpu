@@ -274,6 +274,7 @@ impl<A: hal::Api> Example<A> {
                 write_mask: wgt::ColorWrites::default(),
             })],
             multiview: None,
+            cache: None,
         };
         let pipeline = unsafe { device.create_render_pipeline(&pipeline_desc).unwrap() };
 
@@ -845,6 +846,7 @@ fn main() {
                             }
                         }
                         ex.render();
+                        window.request_redraw();
                     }
                     _ => {
                         example.as_mut().unwrap().update(event);
