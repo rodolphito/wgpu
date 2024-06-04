@@ -4029,7 +4029,7 @@ impl<I: Iterator<Item = u32>> Frontend<I> {
                         pointer: p_lexp_handle,
                         fun: crate::AtomicFunction::Add,
                         value: one_lexp_handle,
-                        result: r_lexp_handle,
+                        result: Some(r_lexp_handle),
                     };
                     block.push(stmt, span);
                 }
@@ -4159,7 +4159,6 @@ impl<I: Iterator<Item = u32>> Frontend<I> {
                 | S::Store { .. }
                 | S::ImageStore { .. }
                 | S::Atomic { .. }
-                | S::AtomicNoReturn { .. }
                 | S::RayQuery { .. }
                 | S::SubgroupBallot { .. }
                 | S::SubgroupCollectiveOperation { .. }

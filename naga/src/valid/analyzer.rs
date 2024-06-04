@@ -1031,15 +1031,6 @@ impl FunctionInfo {
                     }
                     FunctionUniformity::new()
                 }
-                S::AtomicNoReturn {
-                    pointer,
-                    fun: _,
-                    value,
-                } => {
-                    let _ = self.add_ref_impl(pointer, GlobalUse::WRITE);
-                    let _ = self.add_ref(value);
-                    FunctionUniformity::new()
-                }
                 S::RayQuery { query, ref fun } => {
                     let _ = self.add_ref(query);
                     if let crate::RayQueryFunction::Initialize {

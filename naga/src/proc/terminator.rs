@@ -36,7 +36,6 @@ pub fn ensure_block_returns(block: &mut crate::Block) {
             | S::Call { .. }
             | S::RayQuery { .. }
             | S::Atomic { .. }
-            | S::AtomicNoReturn { .. }
             | S::WorkGroupUniformLoad { .. }
             | S::SubgroupBallot { .. }
             | S::SubgroupCollectiveOperation { .. }

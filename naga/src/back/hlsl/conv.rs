@@ -233,13 +233,3 @@ impl crate::AtomicFunction {
         }
     }
 }
-
-impl crate::AtomicFunctionNoReturn {
-    /// Return the HLSL suffix for the `InterlockedXxx` method.
-    pub(super) const fn to_hlsl_suffix(self) -> &'static str {
-        match self {
-            Self::Min => "Min",
-            Self::Max => "Max",
-        }
-    }
-}

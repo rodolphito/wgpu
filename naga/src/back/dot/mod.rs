@@ -244,22 +244,15 @@ impl StatementGraph {
                     value,
                     result,
                 } => {
-                    self.emits.push((id, result));
+                    if let Some(result) = result {
+                        self.emits.push((id, result));
+                    }
                     self.dependencies.push((id, pointer, "pointer"));
                     self.dependencies.push((id, value, "value"));
                     if let crate::AtomicFunction::Exchange { compare: Some(cmp) } = *fun {
                         self.dependencies.push((id, cmp, "cmp"));
                     }
                     "Atomic"
-                }
-                S::AtomicNoReturn {
-                    pointer,
-                    fun: _,
-                    value,
-                } => {
-                    self.dependencies.push((id, pointer, "pointer"));
-                    self.dependencies.push((id, value, "value"));
-                    "AtomicNoReturn"
                 }
                 S::WorkGroupUniformLoad { pointer, result } => {
                     self.emits.push((id, result));

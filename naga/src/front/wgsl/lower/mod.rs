@@ -2087,27 +2087,8 @@ impl<'source, 'temp> Lowerer<'source, 'temp> {
                     return Ok(Some(
                         self.subgroup_gather_helper(span, mode, arguments, ctx)?,
                     ));
-                } else if let Some(fun) = crate::AtomicFunctionNoReturn::map(function.name) {
-                    let mut args = ctx.prepare_args(arguments, 3, span);
-                    args.next()?;
-                    let value = self.expression(args.next()?, ctx)?;
-
-                    if match *resolve_inner!(ctx, value) {
-                        crate::TypeInner::Scalar(crate::Scalar { width: 8, .. }) => is_statement,
-                        _ => false,
-                    } {
-                        self.atomic_no_return_helper(span, fun, arguments, ctx)?;
-                        return Ok(None);
-                    } else {
-                        return Ok(Some(self.atomic_helper(
-                            span,
-                            fun.with_return(),
-                            arguments,
-                            ctx,
-                        )?));
-                    }
                 } else if let Some(fun) = crate::AtomicFunction::map(function.name) {
-                    return Ok(Some(self.atomic_helper(span, fun, arguments, ctx)?));
+                    return self.atomic_helper(span, fun, arguments, is_statement, ctx);
                 } else {
                     match function.name {
                         "select" => {
@@ -2189,7 +2170,7 @@ impl<'source, 'temp> Lowerer<'source, 'temp> {
                                         compare: Some(compare),
                                     },
                                     value,
-                                    result,
+                                    result: Some(result),
                                 },
                                 span,
                             );
@@ -2480,25 +2461,38 @@ impl<'source, 'temp> Lowerer<'source, 'temp> {
         span: Span,
         fun: crate::AtomicFunction,
         args: &[Handle<ast::Expression<'source>>],
+        is_statement: bool,
         ctx: &mut ExpressionContext<'source, '_, '_>,
-    ) -> Result<Handle<crate::Expression>, Error<'source>> {
+    ) -> Result<Option<Handle<crate::Expression>>, Error<'source>> {
         let mut args = ctx.prepare_args(args, 2, span);
 
         let pointer = self.atomic_pointer(args.next()?, ctx)?;
-
-        let value = args.next()?;
-        let value = self.expression(value, ctx)?;
-        let ty = ctx.register_type(value)?;
-
+        let value = self.expression(args.next()?, ctx)?;
+        let value_inner = resolve_inner!(ctx, value);
         args.finish()?;
 
-        let result = ctx.interrupt_emitter(
-            crate::Expression::AtomicResult {
-                ty,
-                comparison: false,
-            },
-            span,
-        )?;
+        // If we don't use the return value of a 64-bit `min` or `max`
+        // operation, generate a no-result form of the `Atomic` statement, so
+        // that we can pass validation with only `SHADER_INT64_ATOMIC_MIN_MAX`
+        // whenever possible.
+        let is_64_bit_min_max =
+            matches!(fun, crate::AtomicFunction::Min | crate::AtomicFunction::Max)
+                && matches!(
+                    *value_inner,
+                    crate::TypeInner::Scalar(crate::Scalar { width: 8, .. })
+                );
+        let result = if is_64_bit_min_max && is_statement {
+            None
+        } else {
+            let ty = ctx.register_type(value)?;
+            Some(ctx.interrupt_emitter(
+                crate::Expression::AtomicResult {
+                    ty,
+                    comparison: false,
+                },
+                span,
+            )?)
+        };
         let rctx = ctx.runtime_expression_ctx(span)?;
         rctx.block.push(
             crate::Statement::Atomic {
@@ -2510,35 +2504,6 @@ impl<'source, 'temp> Lowerer<'source, 'temp> {
             span,
         );
         Ok(result)
-    }
-
-    fn atomic_no_return_helper(
-        &mut self,
-        span: Span,
-        fun: crate::AtomicFunctionNoReturn,
-        args: &[Handle<ast::Expression<'source>>],
-        ctx: &mut ExpressionContext<'source, '_, '_>,
-    ) -> Result<(), Error<'source>> {
-        let mut args = ctx.prepare_args(args, 2, span);
-
-        let pointer = self.atomic_pointer(args.next()?, ctx)?;
-
-        let value = args.next()?;
-        let value = self.expression(value, ctx)?;
-        ctx.register_type(value)?;
-
-        args.finish()?;
-
-        let rctx = ctx.runtime_expression_ctx(span)?;
-        rctx.block.push(
-            crate::Statement::AtomicNoReturn {
-                pointer,
-                fun,
-                value,
-            },
-            span,
-        );
-        Ok(())
     }
 
     fn texture_sample_helper(
@@ -3006,16 +2971,6 @@ impl crate::AtomicFunction {
             "atomicMin" => crate::AtomicFunction::Min,
             "atomicMax" => crate::AtomicFunction::Max,
             "atomicExchange" => crate::AtomicFunction::Exchange { compare: None },
-            _ => return None,
-        })
-    }
-}
-
-impl crate::AtomicFunctionNoReturn {
-    pub fn map(word: &str) -> Option<Self> {
-        Some(match word {
-            "atomicMin" => crate::AtomicFunctionNoReturn::Min,
-            "atomicMax" => crate::AtomicFunctionNoReturn::Max,
             _ => return None,
         })
     }
