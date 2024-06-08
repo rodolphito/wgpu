@@ -1919,11 +1919,20 @@ impl<'a, W: fmt::Write> super::Writer<'a, W> {
                 result,
             } => {
                 write!(self.out, "{level}")?;
-                let res_name = format!("{}{}", back::BAKE_PREFIX, result.index());
-                match func_ctx.info[result].ty {
-                    proc::TypeResolution::Handle(handle) => self.write_type(module, handle)?,
-                    proc::TypeResolution::Value(ref value) => {
-                        self.write_value_type(module, value)?
+                let res_name = match result {
+                    None => None,
+                    Some(result) => {
+                        let name = format!("{}{}", back::BAKE_PREFIX, result.index());
+                        match func_ctx.info[result].ty {
+                            proc::TypeResolution::Handle(handle) => {
+                                self.write_type(module, handle)?
+                            }
+                            proc::TypeResolution::Value(ref value) => {
+                                self.write_value_type(module, value)?
+                            }
+                        };
+                        write!(self.out, " {name}; ")?;
+                        Some((result, name))
                     }
                 };
 
@@ -1934,7 +1943,6 @@ impl<'a, W: fmt::Write> super::Writer<'a, W> {
                     .unwrap();
 
                 let fun_str = fun.to_hlsl_suffix();
-                write!(self.out, " {res_name}; ")?;
                 match pointer_space {
                     crate::AddressSpace::WorkGroup => {
                         write!(self.out, "Interlocked{fun_str}(")?;
@@ -1970,56 +1978,16 @@ impl<'a, W: fmt::Write> super::Writer<'a, W> {
                     _ => {}
                 }
                 self.write_expr(module, value, func_ctx)?;
-                writeln!(self.out, ", {res_name});")?;
-                self.named_expressions.insert(result, res_name);
-            }
-            Statement::AtomicNoReturn {
-                pointer,
-                ref fun,
-                value,
-            } => {
-                write!(self.out, "{level}")?;
-                let res_name = format!("{}_discard{}", back::BAKE_PREFIX, pointer.index());
-                match func_ctx.info[value].ty {
-                    proc::TypeResolution::Handle(handle) => self.write_type(module, handle)?,
-                    proc::TypeResolution::Value(ref value) => {
-                        self.write_value_type(module, value)?
-                    }
-                };
 
-                // Validation ensures that `pointer` has a `Pointer` type.
-                let pointer_space = func_ctx
-                    .resolve_type(pointer, &module.types)
-                    .pointer_space()
-                    .unwrap();
-
-                let fun_str = fun.to_hlsl_suffix();
-                write!(self.out, " {res_name}; ")?;
-                match pointer_space {
-                    crate::AddressSpace::WorkGroup => {
-                        write!(self.out, "Interlocked{fun_str}(")?;
-                        self.write_expr(module, pointer, func_ctx)?;
-                    }
-                    crate::AddressSpace::Storage { .. } => {
-                        let var_handle = self.fill_access_chain(module, pointer, func_ctx)?;
-                        // The call to `self.write_storage_address` wants
-                        // mutable access to all of `self`, so temporarily take
-                        // ownership of our reusable access chain buffer.
-                        let chain = mem::take(&mut self.temp_access_chain);
-                        let var_name = &self.names[&NameKey::GlobalVariable(var_handle)];
-                        write!(self.out, "{var_name}.Interlocked{fun_str}(")?;
-                        self.write_storage_address(module, &chain, func_ctx)?;
-                        self.temp_access_chain = chain;
-                    }
-                    ref other => {
-                        return Err(Error::Custom(format!(
-                            "invalid address space {other:?} for atomic statement"
-                        )))
-                    }
+                // The `original_value` out parameter is optional for all the
+                // `Interlocked` functions we generate other than
+                // `InterlockedExchange`.
+                if let Some((result, name)) = res_name {
+                    write!(self.out, ", {name}")?;
+                    self.named_expressions.insert(result, name);
                 }
-                write!(self.out, ", ")?;
-                self.write_expr(module, value, func_ctx)?;
-                writeln!(self.out, ", {res_name});")?;
+
+                writeln!(self.out, ");")?;
             }
             Statement::ImageAtomic {
                 image,

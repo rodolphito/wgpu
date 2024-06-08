@@ -5,15 +5,15 @@ use crate::{
         compute_command::{ArcComputeCommand, ComputeCommand},
         end_pipeline_statistics_query,
         memory_init::{fixup_discarded_surfaces, SurfacesInDiscardState},
-        BasePass, BindGroupStateChange, CommandBuffer, CommandEncoderError, CommandEncoderStatus,
-        MapPassErr, PassErrorScope, QueryUseError, StateChange,
+        validate_and_begin_pipeline_statistics_query, BasePass, BindGroupStateChange,
+        CommandBuffer, CommandEncoderError, CommandEncoderStatus, MapPassErr, PassErrorScope,
+        QueryUseError, StateChange,
     },
     device::{DeviceError, MissingDownlevelFlags, MissingFeatures},
     error::{ErrorFormatter, PrettyError},
     global::Global,
     hal_api::HalApi,
-    hal_label,
-    id::{self, DeviceId},
+    hal_label, id,
     init_tracker::MemoryInitKind,
     resource::{self, Resource},
     snatch::SnatchGuard,
@@ -34,15 +34,21 @@ use wgt::{BufferAddress, DynamicOffset};
 use std::sync::Arc;
 use std::{fmt, mem, str};
 
+use super::DynComputePass;
+
 pub struct ComputePass<A: HalApi> {
     /// All pass data & records is stored here.
     ///
-    /// If this is `None`, the pass has been ended and can no longer be used.
+    /// If this is `None`, the pass is in the 'ended' state and can no longer be used.
     /// Any attempt to record more commands will result in a validation error.
     base: Option<BasePass<ArcComputeCommand<A>>>,
 
-    parent_id: id::CommandEncoderId,
-    timestamp_writes: Option<ComputePassTimestampWrites>,
+    /// Parent command buffer that this pass records commands into.
+    ///
+    /// If it is none, this pass is invalid and any operation on it will return an error.
+    parent: Option<Arc<CommandBuffer<A>>>,
+
+    timestamp_writes: Option<ArcComputePassTimestampWrites<A>>,
 
     // Resource binding dedupe state.
     current_bind_groups: BindGroupStateChange,
@@ -50,11 +56,17 @@ pub struct ComputePass<A: HalApi> {
 }
 
 impl<A: HalApi> ComputePass<A> {
-    fn new(parent_id: id::CommandEncoderId, desc: &ComputePassDescriptor) -> Self {
+    /// If the parent command buffer is invalid, the returned pass will be invalid.
+    fn new(parent: Option<Arc<CommandBuffer<A>>>, desc: ArcComputePassDescriptor<A>) -> Self {
+        let ArcComputePassDescriptor {
+            label,
+            timestamp_writes,
+        } = desc;
+
         Self {
-            base: Some(BasePass::<ArcComputeCommand<A>>::new(&desc.label)),
-            parent_id,
-            timestamp_writes: desc.timestamp_writes.cloned(),
+            base: Some(BasePass::new(label)),
+            parent,
+            timestamp_writes,
 
             current_bind_groups: BindGroupStateChange::new(),
             current_pipeline: StateChange::new(),
@@ -62,8 +74,8 @@ impl<A: HalApi> ComputePass<A> {
     }
 
     #[inline]
-    pub fn parent_id(&self) -> id::CommandEncoderId {
-        self.parent_id
+    pub fn parent_id(&self) -> Option<id::CommandBufferId> {
+        self.parent.as_ref().map(|cmd_buf| cmd_buf.as_info().id())
     }
 
     #[inline]
@@ -84,7 +96,7 @@ impl<A: HalApi> ComputePass<A> {
 
 impl<A: HalApi> fmt::Debug for ComputePass<A> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "ComputePass {{ encoder_id: {:?} }}", self.parent_id)
+        write!(f, "ComputePass {{ parent: {:?} }}", self.parent_id())
     }
 }
 
@@ -100,11 +112,27 @@ pub struct ComputePassTimestampWrites {
     pub end_of_pass_write_index: Option<u32>,
 }
 
+/// Describes the writing of timestamp values in a compute pass with the query set resolved.
+struct ArcComputePassTimestampWrites<A: HalApi> {
+    /// The query set to write the timestamps to.
+    pub query_set: Arc<resource::QuerySet<A>>,
+    /// The index of the query set at which a start timestamp of this pass is written, if any.
+    pub beginning_of_pass_write_index: Option<u32>,
+    /// The index of the query set at which an end timestamp of this pass is written, if any.
+    pub end_of_pass_write_index: Option<u32>,
+}
+
 #[derive(Clone, Debug, Default)]
 pub struct ComputePassDescriptor<'a> {
     pub label: Label<'a>,
     /// Defines where and when timestamp values will be written for this pass.
     pub timestamp_writes: Option<&'a ComputePassTimestampWrites>,
+}
+
+struct ArcComputePassDescriptor<'a, A: HalApi> {
+    pub label: &'a Label<'a>,
+    /// Defines where and when timestamp values will be written for this pass.
+    pub timestamp_writes: Option<ArcComputePassTimestampWrites<A>>,
 }
 
 #[derive(Clone, Debug, Error, Eq, PartialEq)]
@@ -129,10 +157,12 @@ pub enum ComputePassErrorInner {
     Device(#[from] DeviceError),
     #[error(transparent)]
     Encoder(#[from] CommandEncoderError),
+    #[error("Parent encoder is invalid")]
+    InvalidParentEncoder,
     #[error("Bind group at index {0:?} is invalid")]
     InvalidBindGroup(u32),
     #[error("Device {0:?} is invalid")]
-    InvalidDevice(DeviceId),
+    InvalidDevice(id::DeviceId),
     #[error("Bind group index {index} is greater than the device's requested `max_bind_group` limit {max}")]
     BindGroupIndexOutOfRange { index: u32, max: u32 },
     #[error("Compute pipeline {0:?} is invalid")]
@@ -292,31 +322,79 @@ impl<'a, A: HalApi> State<'a, A> {
 // Running the compute pass.
 
 impl Global {
+    /// Creates a compute pass.
+    ///
+    /// If creation fails, an invalid pass is returned.
+    /// Any operation on an invalid pass will return an error.
+    ///
+    /// If successful, puts the encoder into the [`CommandEncoderStatus::Locked`] state.
     pub fn command_encoder_create_compute_pass<A: HalApi>(
         &self,
-        parent_id: id::CommandEncoderId,
-        desc: &ComputePassDescriptor,
-    ) -> ComputePass<A> {
-        ComputePass::new(parent_id, desc)
+        encoder_id: id::CommandEncoderId,
+        desc: &ComputePassDescriptor<'_>,
+    ) -> (ComputePass<A>, Option<CommandEncoderError>) {
+        let hub = A::hub(self);
+
+        let mut arc_desc = ArcComputePassDescriptor {
+            label: &desc.label,
+            timestamp_writes: None, // Handle only once we resolved the encoder.
+        };
+
+        match CommandBuffer::lock_encoder(hub, encoder_id) {
+            Ok(cmd_buf) => {
+                arc_desc.timestamp_writes = if let Some(tw) = desc.timestamp_writes {
+                    let Ok(query_set) = hub.query_sets.read().get_owned(tw.query_set) else {
+                        return (
+                            ComputePass::new(None, arc_desc),
+                            Some(CommandEncoderError::InvalidTimestampWritesQuerySetId),
+                        );
+                    };
+
+                    Some(ArcComputePassTimestampWrites {
+                        query_set,
+                        beginning_of_pass_write_index: tw.beginning_of_pass_write_index,
+                        end_of_pass_write_index: tw.end_of_pass_write_index,
+                    })
+                } else {
+                    None
+                };
+
+                (ComputePass::new(Some(cmd_buf), arc_desc), None)
+            }
+            Err(err) => (ComputePass::new(None, arc_desc), Some(err)),
+        }
     }
 
+    /// Creates a type erased compute pass.
+    ///
+    /// If creation fails, an invalid pass is returned.
+    /// Any operation on an invalid pass will return an error.
     pub fn command_encoder_create_compute_pass_dyn<A: HalApi>(
         &self,
-        parent_id: id::CommandEncoderId,
+        encoder_id: id::CommandEncoderId,
         desc: &ComputePassDescriptor,
-    ) -> Box<dyn super::DynComputePass> {
-        Box::new(ComputePass::<A>::new(parent_id, desc))
+    ) -> (Box<dyn DynComputePass>, Option<CommandEncoderError>) {
+        let (pass, err) = self.command_encoder_create_compute_pass::<A>(encoder_id, desc);
+        (Box::new(pass), err)
     }
 
     pub fn compute_pass_end<A: HalApi>(
         &self,
         pass: &mut ComputePass<A>,
     ) -> Result<(), ComputePassError> {
-        let base = pass.base.take().ok_or(ComputePassError {
-            scope: PassErrorScope::Pass(pass.parent_id),
-            inner: ComputePassErrorInner::PassEnded,
-        })?;
-        self.compute_pass_end_impl(pass.parent_id, base, pass.timestamp_writes.as_ref())
+        let scope = PassErrorScope::Pass(pass.parent_id());
+        let Some(parent) = pass.parent.as_ref() else {
+            return Err(ComputePassErrorInner::InvalidParentEncoder).map_pass_err(scope);
+        };
+
+        parent.unlock_encoder().map_pass_err(scope)?;
+
+        let base = pass
+            .base
+            .take()
+            .ok_or(ComputePassErrorInner::PassEnded)
+            .map_pass_err(scope)?;
+        self.compute_pass_end_impl(parent, base, pass.timestamp_writes.take())
     }
 
     #[doc(hidden)]
@@ -326,10 +404,29 @@ impl Global {
         base: BasePass<ComputeCommand>,
         timestamp_writes: Option<&ComputePassTimestampWrites>,
     ) -> Result<(), ComputePassError> {
+        let hub = A::hub(self);
+        let scope = PassErrorScope::PassEncoder(encoder_id);
+
+        let cmd_buf = CommandBuffer::get_encoder(hub, encoder_id).map_pass_err(scope)?;
         let commands = ComputeCommand::resolve_compute_command_ids(A::hub(self), &base.commands)?;
 
+        let timestamp_writes = if let Some(tw) = timestamp_writes {
+            Some(ArcComputePassTimestampWrites {
+                query_set: hub
+                    .query_sets
+                    .read()
+                    .get_owned(tw.query_set)
+                    .map_err(|_| ComputePassErrorInner::InvalidQuerySet(tw.query_set))
+                    .map_pass_err(scope)?,
+                beginning_of_pass_write_index: tw.beginning_of_pass_write_index,
+                end_of_pass_write_index: tw.end_of_pass_write_index,
+            })
+        } else {
+            None
+        };
+
         self.compute_pass_end_impl::<A>(
-            encoder_id,
+            &cmd_buf,
             BasePass {
                 label: base.label,
                 commands,
@@ -343,17 +440,13 @@ impl Global {
 
     fn compute_pass_end_impl<A: HalApi>(
         &self,
-        encoder_id: id::CommandEncoderId,
+        cmd_buf: &CommandBuffer<A>,
         base: BasePass<ArcComputeCommand<A>>,
-        timestamp_writes: Option<&ComputePassTimestampWrites>,
+        mut timestamp_writes: Option<ArcComputePassTimestampWrites<A>>,
     ) -> Result<(), ComputePassError> {
         profiling::scope!("CommandEncoder::run_compute_pass");
-        let pass_scope = PassErrorScope::Pass(encoder_id);
+        let pass_scope = PassErrorScope::Pass(Some(cmd_buf.as_info().id()));
 
-        let hub = A::hub(self);
-
-        let cmd_buf: Arc<CommandBuffer<A>> =
-            CommandBuffer::get_encoder(hub, encoder_id).map_pass_err(pass_scope)?;
         let device = &cmd_buf.device;
         if !device.is_valid() {
             return Err(ComputePassErrorInner::InvalidDevice(
@@ -375,7 +468,13 @@ impl Global {
                     string_data: base.string_data.to_vec(),
                     push_constant_data: base.push_constant_data.to_vec(),
                 },
-                timestamp_writes: timestamp_writes.cloned(),
+                timestamp_writes: timestamp_writes
+                    .as_ref()
+                    .map(|tw| ComputePassTimestampWrites {
+                        query_set: tw.query_set.as_info().id(),
+                        beginning_of_pass_write_index: tw.beginning_of_pass_write_index,
+                        end_of_pass_write_index: tw.end_of_pass_write_index,
+                    }),
             });
         }
 
@@ -393,8 +492,6 @@ impl Global {
         *status = CommandEncoderStatus::Error;
         let raw = encoder.open().map_pass_err(pass_scope)?;
 
-        let query_set_guard = hub.query_sets.read();
-
         let mut state = State {
             binder: Binder::new(),
             pipeline: None,
@@ -406,12 +503,19 @@ impl Global {
         let mut string_offset = 0;
         let mut active_query = None;
 
-        let timestamp_writes = if let Some(tw) = timestamp_writes {
-            let query_set: &resource::QuerySet<A> = tracker
-                .query_sets
-                .add_single(&*query_set_guard, tw.query_set)
-                .ok_or(ComputePassErrorInner::InvalidQuerySet(tw.query_set))
-                .map_pass_err(pass_scope)?;
+        let snatch_guard = device.snatchable_lock.read();
+
+        let indices = &device.tracker_indices;
+        tracker.buffers.set_size(indices.buffers.size());
+        tracker.textures.set_size(indices.textures.size());
+        tracker.bind_groups.set_size(indices.bind_groups.size());
+        tracker
+            .compute_pipelines
+            .set_size(indices.compute_pipelines.size());
+        tracker.query_sets.set_size(indices.query_sets.size());
+
+        let timestamp_writes = if let Some(tw) = timestamp_writes.take() {
+            let query_set = tracker.query_sets.insert_single(tw.query_set);
 
             // Unlike in render passes we can't delay resetting the query sets since
             // there is no auxiliary pass.
@@ -440,17 +544,6 @@ impl Global {
         } else {
             None
         };
-
-        let snatch_guard = device.snatchable_lock.read();
-
-        let indices = &device.tracker_indices;
-        tracker.buffers.set_size(indices.buffers.size());
-        tracker.textures.set_size(indices.textures.size());
-        tracker.bind_groups.set_size(indices.bind_groups.size());
-        tracker
-            .compute_pipelines
-            .set_size(indices.compute_pipelines.size());
-        tracker.query_sets.set_size(indices.query_sets.size());
 
         let discard_hal_labels = self
             .instance
@@ -777,7 +870,6 @@ impl Global {
                     query_set,
                     query_index,
                 } => {
-                    let query_set_id = query_set.as_info().id();
                     let scope = PassErrorScope::WriteTimestamp;
 
                     device
@@ -787,33 +879,29 @@ impl Global {
                     let query_set = tracker.query_sets.insert_single(query_set);
 
                     query_set
-                        .validate_and_write_timestamp(raw, query_set_id, query_index, None)
+                        .validate_and_write_timestamp(raw, query_index, None)
                         .map_pass_err(scope)?;
                 }
                 ArcComputeCommand::BeginPipelineStatisticsQuery {
                     query_set,
                     query_index,
                 } => {
-                    let query_set_id = query_set.as_info().id();
                     let scope = PassErrorScope::BeginPipelineStatisticsQuery;
 
                     let query_set = tracker.query_sets.insert_single(query_set);
 
-                    query_set
-                        .validate_and_begin_pipeline_statistics_query(
-                            raw,
-                            query_set_id,
-                            query_index,
-                            None,
-                            &mut active_query,
-                        )
-                        .map_pass_err(scope)?;
+                    validate_and_begin_pipeline_statistics_query(
+                        query_set.clone(),
+                        raw,
+                        query_index,
+                        None,
+                        &mut active_query,
+                    )
+                    .map_pass_err(scope)?;
                 }
                 ArcComputeCommand::EndPipelineStatisticsQuery => {
                     let scope = PassErrorScope::EndPipelineStatisticsQuery;
-
-                    end_pipeline_statistics_query(raw, &*query_set_guard, &mut active_query)
-                        .map_pass_err(scope)?;
+                    end_pipeline_statistics_query(raw, &mut active_query).map_pass_err(scope)?;
                 }
             }
         }
@@ -884,10 +972,9 @@ impl Global {
         let bind_group = hub
             .bind_groups
             .read()
-            .get(bind_group_id)
+            .get_owned(bind_group_id)
             .map_err(|_| ComputePassErrorInner::InvalidBindGroup(index))
-            .map_pass_err(scope)?
-            .clone();
+            .map_pass_err(scope)?;
 
         base.commands.push(ArcComputeCommand::SetBindGroup {
             index,
@@ -917,10 +1004,9 @@ impl Global {
         let pipeline = hub
             .compute_pipelines
             .read()
-            .get(pipeline_id)
+            .get_owned(pipeline_id)
             .map_err(|_| ComputePassErrorInner::InvalidPipeline(pipeline_id))
-            .map_pass_err(scope)?
-            .clone();
+            .map_pass_err(scope)?;
 
         base.commands.push(ArcComputeCommand::SetPipeline(pipeline));
 
@@ -1000,10 +1086,9 @@ impl Global {
         let buffer = hub
             .buffers
             .read()
-            .get(buffer_id)
+            .get_owned(buffer_id)
             .map_err(|_| ComputePassErrorInner::InvalidBuffer(buffer_id))
-            .map_pass_err(scope)?
-            .clone();
+            .map_pass_err(scope)?;
 
         base.commands
             .push(ArcComputeCommand::<A>::DispatchIndirect { buffer, offset });
@@ -1074,10 +1159,9 @@ impl Global {
         let query_set = hub
             .query_sets
             .read()
-            .get(query_set_id)
+            .get_owned(query_set_id)
             .map_err(|_| ComputePassErrorInner::InvalidQuerySet(query_set_id))
-            .map_pass_err(scope)?
-            .clone();
+            .map_pass_err(scope)?;
 
         base.commands.push(ArcComputeCommand::WriteTimestamp {
             query_set,
@@ -1100,10 +1184,9 @@ impl Global {
         let query_set = hub
             .query_sets
             .read()
-            .get(query_set_id)
+            .get_owned(query_set_id)
             .map_err(|_| ComputePassErrorInner::InvalidQuerySet(query_set_id))
-            .map_pass_err(scope)?
-            .clone();
+            .map_pass_err(scope)?;
 
         base.commands
             .push(ArcComputeCommand::BeginPipelineStatisticsQuery {
