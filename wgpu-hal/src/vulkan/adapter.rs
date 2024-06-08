@@ -581,7 +581,8 @@ impl PhysicalDeviceFeatures {
         if let Some(ref shader_atomic_int64) = self.shader_atomic_int64 {
             features.set(
                 F::SHADER_INT64_ATOMIC_ALL_OPS | F::SHADER_INT64_ATOMIC_MIN_MAX,
-                shader_atomic_int64.shader_buffer_int64_atomics != 0,
+                shader_atomic_int64.shader_buffer_int64_atomics != 0
+                    && shader_atomic_int64.shader_shared_int64_atomics != 0,
             );
         }
 
