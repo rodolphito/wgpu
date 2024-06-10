@@ -237,7 +237,7 @@ struct Atomic {
     image_id: Word,
 
     /// The kind of atomic operation to perform
-    fun: crate::AtomicFunctionNoReturn,
+    fun: crate::AtomicFunction,
 
     /// The value we're going to write to the texel.
     value_id: Word,
@@ -1254,7 +1254,7 @@ impl<'w> BlockContext<'w> {
         image: Handle<crate::Expression>,
         coordinate: Handle<crate::Expression>,
         array_index: Option<Handle<crate::Expression>>,
-        fun: crate::AtomicFunctionNoReturn,
+        fun: crate::AtomicFunction,
         value: Handle<crate::Expression>,
         block: &mut Block,
     ) -> Result<(), Error> {

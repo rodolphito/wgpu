@@ -2206,8 +2206,8 @@ impl<'source, 'temp> Lowerer<'source, 'temp> {
                                 coordinate,
                                 array_index,
                                 fun: match function.name {
-                                    "imageAtomicMin" => crate::AtomicFunctionNoReturn::Min,
-                                    "imageAtomicMax" => crate::AtomicFunctionNoReturn::Max,
+                                    "imageAtomicMin" => crate::AtomicFunction::Min,
+                                    "imageAtomicMax" => crate::AtomicFunction::Max,
                                     _ => unreachable!(),
                                 },
                                 value,

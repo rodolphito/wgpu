@@ -1067,7 +1067,7 @@ impl<W: Write> Writer<W> {
         level: back::Level,
         image: Handle<crate::Expression>,
         address: &TexelAddress,
-        fun: crate::AtomicFunctionNoReturn,
+        fun: crate::AtomicFunction,
         value: Handle<crate::Expression>,
         context: &StatementContext,
     ) -> BackendResult {
@@ -1079,7 +1079,7 @@ impl<W: Write> Writer<W> {
 
                 write!(self.out, "{level}")?;
                 self.put_expression(image, &context.expression, false)?;
-                let fun_str = fun.to_msl();
+                let fun_str = fun.to_msl()?;
                 write!(self.out, ".atomic_{fun_str}(")?;
                 self.put_expression(value, &context.expression, true)?;
                 write!(self.out, ", ")?;

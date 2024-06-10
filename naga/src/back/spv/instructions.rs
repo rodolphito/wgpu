@@ -705,12 +705,13 @@ impl super::Instruction {
     pub(super) fn image_atomic(
         image: Word,
         coordinates: Word,
-        fun: crate::AtomicFunctionNoReturn,
+        fun: crate::AtomicFunction,
         value: Word,
     ) -> Self {
         let mut instruction = Self::new(match fun {
-            crate::AtomicFunctionNoReturn::Max => Op::AtomicUMax,
-            crate::AtomicFunctionNoReturn::Min => Op::AtomicUMin,
+            crate::AtomicFunction::Max => Op::AtomicUMax,
+            crate::AtomicFunction::Min => Op::AtomicUMin,
+            _ => unreachable!(),
         });
         instruction.add_operand(image);
         instruction.add_operand(coordinates);

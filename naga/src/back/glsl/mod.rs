@@ -4033,7 +4033,7 @@ impl<'a, W: Write> Writer<'a, W> {
         image: Handle<crate::Expression>,
         coordinate: Handle<crate::Expression>,
         array_index: Option<Handle<crate::Expression>>,
-        fun: crate::AtomicFunctionNoReturn,
+        fun: crate::AtomicFunction,
         value: Handle<crate::Expression>,
     ) -> Result<(), Error> {
         use crate::ImageDimension as IDim;

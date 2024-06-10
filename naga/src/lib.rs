@@ -1989,7 +1989,7 @@ pub enum Statement {
         image: Handle<Expression>,
         coordinate: Handle<Expression>,
         array_index: Option<Handle<Expression>>,
-        fun: AtomicFunctionNoReturn,
+        fun: AtomicFunction,
         value: Handle<Expression>,
     },
     /// Load uniformly from a uniform pointer in the workgroup address space.
