@@ -1989,7 +1989,7 @@ impl<'a, W: fmt::Write> super::Writer<'a, W> {
 
                 writeln!(self.out, ");")?;
             }
-            Statement::ImageAtomic {
+            crate::Statement::ImageAtomic {
                 image,
                 coordinate,
                 array_index,
