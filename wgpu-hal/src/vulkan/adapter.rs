@@ -735,7 +735,6 @@ impl PhysicalDeviceFeatures {
                 | vk::FormatFeatureFlags::COLOR_ATTACHMENT_BLEND,
         );
         features.set(F::RG11B10UFLOAT_RENDERABLE, rg11b10ufloat_renderable);
-        features.set(F::SHADER_UNUSED_VERTEX_OUTPUT, true);
 
         features.set(
             F::BGRA8UNORM_STORAGE,
@@ -1819,6 +1818,7 @@ impl super::Adapter {
             workarounds: self.workarounds,
             render_passes: Mutex::new(Default::default()),
             framebuffers: Mutex::new(Default::default()),
+            memory_allocations_counter: Default::default(),
         });
 
         let relay_semaphores = super::RelaySemaphores::new(&shared)?;
@@ -1881,6 +1881,7 @@ impl super::Adapter {
             naga_options,
             #[cfg(feature = "renderdoc")]
             render_doc: Default::default(),
+            counters: Default::default(),
         };
 
         Ok(crate::OpenDevice { device, queue })

@@ -1159,7 +1159,6 @@ impl crate::context::Context for ContextWebGpu {
     type SurfaceData = Sendable<(Canvas, webgpu_sys::GpuCanvasContext)>;
 
     type SurfaceOutputDetail = SurfaceOutputDetail;
-    type SubmissionIndex = Unused;
     type SubmissionIndexData = ();
     type PipelineCacheId = Unused;
     type PipelineCacheData = ();
@@ -2572,7 +2571,7 @@ impl crate::context::Context for ContextWebGpu {
         &self,
         _encoder: &Self::CommandEncoderId,
         encoder_data: &Self::CommandEncoderData,
-        desc: &crate::RenderPassDescriptor<'_, '_>,
+        desc: &crate::RenderPassDescriptor<'_>,
     ) -> (Self::RenderPassId, Self::RenderPassData) {
         let mapped_color_attachments = desc
             .color_attachments
@@ -2951,14 +2950,12 @@ impl crate::context::Context for ContextWebGpu {
         _queue: &Self::QueueId,
         queue_data: &Self::QueueData,
         command_buffers: I,
-    ) -> (Self::SubmissionIndex, Self::SubmissionIndexData) {
+    ) -> Self::SubmissionIndexData {
         let temp_command_buffers = command_buffers
             .map(|(_, data)| data.0)
             .collect::<js_sys::Array>();
 
         queue_data.0.submit(&temp_command_buffers);
-
-        (Unused, ())
     }
 
     fn queue_get_timestamp_period(
@@ -2981,6 +2978,14 @@ impl crate::context::Context for ContextWebGpu {
 
     fn device_start_capture(&self, _device: &Self::DeviceId, _device_data: &Self::DeviceData) {}
     fn device_stop_capture(&self, _device: &Self::DeviceId, _device_data: &Self::DeviceData) {}
+
+    fn device_get_internal_counters(
+        &self,
+        _device: &Self::DeviceId,
+        _device_data: &Self::DeviceData,
+    ) -> wgt::InternalCounters {
+        Default::default()
+    }
 
     fn pipeline_cache_get_data(
         &self,

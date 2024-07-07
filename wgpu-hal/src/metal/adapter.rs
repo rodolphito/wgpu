@@ -62,6 +62,7 @@ impl crate::Adapter for super::Adapter {
             device: super::Device {
                 shared: Arc::clone(&self.shared),
                 features,
+                counters: Default::default(),
             },
             queue: super::Queue {
                 raw: Arc::new(Mutex::new(queue)),
@@ -914,7 +915,6 @@ impl super::PrivateCapabilities {
         features.set(F::ADDRESS_MODE_CLAMP_TO_ZERO, true);
 
         features.set(F::RG11B10UFLOAT_RENDERABLE, self.format_rg11b10_all);
-        features.set(F::SHADER_UNUSED_VERTEX_OUTPUT, true);
 
         if self.supports_simd_scoped_operations {
             features.insert(F::SUBGROUP | F::SUBGROUP_BARRIER);

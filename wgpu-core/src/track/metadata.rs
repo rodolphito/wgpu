@@ -1,8 +1,7 @@
 //! The `ResourceMetadata` type.
 
-use crate::resource::Resource;
 use bit_vec::BitVec;
-use std::{borrow::Cow, mem, sync::Arc};
+use std::{mem, sync::Arc};
 use wgt::strict_assert;
 
 /// A set of resources, holding a `Arc<T>` and epoch for each member.
@@ -13,7 +12,7 @@ use wgt::strict_assert;
 /// members, but a bit vector tracks occupancy, so iteration touches
 /// only occupied elements.
 #[derive(Debug)]
-pub(super) struct ResourceMetadata<T: Resource> {
+pub(super) struct ResourceMetadata<T> {
     /// If the resource with index `i` is a member, `owned[i]` is `true`.
     owned: BitVec<usize>,
 
@@ -21,7 +20,7 @@ pub(super) struct ResourceMetadata<T: Resource> {
     resources: Vec<Option<Arc<T>>>,
 }
 
-impl<T: Resource> ResourceMetadata<T> {
+impl<T> ResourceMetadata<T> {
     pub(super) fn new() -> Self {
         Self {
             owned: BitVec::default(),
@@ -175,28 +174,27 @@ impl<T: Resource> ResourceMetadata<T> {
 ///
 /// This is used to abstract over the various places
 /// trackers can get new resource metadata from.
-pub(super) enum ResourceMetadataProvider<'a, T: Resource> {
+pub(super) enum ResourceMetadataProvider<'a, T> {
     /// Comes directly from explicit values.
-    Direct { resource: Cow<'a, Arc<T>> },
+    Direct { resource: &'a Arc<T> },
     /// Comes from another metadata tracker.
     Indirect { metadata: &'a ResourceMetadata<T> },
 }
-impl<T: Resource> ResourceMetadataProvider<'_, T> {
-    /// Get the epoch and an owned refcount from this.
+impl<T> ResourceMetadataProvider<'_, T> {
+    /// Get a reference to the resource from this.
     ///
     /// # Safety
     ///
     /// - The index must be in bounds of the metadata tracker if this uses an indirect source.
-    /// - info must be Some if this uses a Resource source.
     #[inline(always)]
-    pub(super) unsafe fn get_own(self, index: usize) -> Arc<T> {
+    pub(super) unsafe fn get(&self, index: usize) -> &Arc<T> {
         match self {
-            ResourceMetadataProvider::Direct { resource } => resource.into_owned(),
+            ResourceMetadataProvider::Direct { resource } => resource,
             ResourceMetadataProvider::Indirect { metadata } => {
                 metadata.tracker_assert_in_bounds(index);
                 {
-                    let resource = unsafe { metadata.resources.get_unchecked(index) };
-                    unsafe { resource.clone().unwrap_unchecked() }
+                    let resource = unsafe { metadata.resources.get_unchecked(index) }.as_ref();
+                    unsafe { resource.unwrap_unchecked() }
                 }
             }
         }

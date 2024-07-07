@@ -25,11 +25,12 @@ use super::{
 use crate::{
     hal_api::HalApi,
     lock::{rank, Mutex},
-    resource::{Resource, Texture, TextureInner},
+    resource::{Labeled, Texture, TextureInner, Trackable},
+    resource_log,
     snatch::SnatchGuard,
     track::{
         invalid_resource_state, skip_barrier, ResourceMetadata, ResourceMetadataProvider,
-        ResourceUses, UsageConflict,
+        ResourceUsageCompatibilityError, ResourceUses,
     },
 };
 use hal::TextureUses;
@@ -39,7 +40,7 @@ use naga::FastHashMap;
 
 use wgt::{strict_assert, strict_assert_eq};
 
-use std::{borrow::Cow, iter, marker::PhantomData, ops::Range, sync::Arc, vec::Drain};
+use std::{iter, marker::PhantomData, ops::Range, sync::Arc, vec::Drain};
 
 /// Specifies a particular set of subresources in a texture.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -174,7 +175,7 @@ impl<A: HalApi> TextureBindGroupState<A> {
     /// accesses will be in a constant ascending order.
     pub(crate) fn optimize(&self) {
         let mut textures = self.textures.lock();
-        textures.sort_unstable_by_key(|v| v.texture.as_info().tracker_index());
+        textures.sort_unstable_by_key(|v| v.texture.tracker_index());
     }
 
     /// Returns a list of all textures tracked. May contain duplicates.
@@ -188,19 +189,18 @@ impl<A: HalApi> TextureBindGroupState<A> {
     }
 
     /// Adds the given resource with the given state.
-    pub fn add_single<'a>(
+    pub fn add_single(
         &self,
-        texture: &'a Arc<Texture<A>>,
+        texture: &Arc<Texture<A>>,
         selector: Option<TextureSelector>,
         state: TextureUses,
-    ) -> Option<&'a Arc<Texture<A>>> {
+    ) {
         let mut textures = self.textures.lock();
         textures.push(TextureBindGroupStateData {
             selector,
             texture: texture.clone(),
             usage: state,
         });
-        Some(texture)
     }
 }
 
@@ -295,7 +295,10 @@ impl<A: HalApi> TextureUsageScope<A> {
     ///
     /// If the given tracker uses IDs higher than the length of internal vectors,
     /// the vectors will be extended. A call to set_size is not needed.
-    pub fn merge_usage_scope(&mut self, scope: &Self) -> Result<(), UsageConflict> {
+    pub fn merge_usage_scope(
+        &mut self,
+        scope: &Self,
+    ) -> Result<(), ResourceUsageCompatibilityError> {
         let incoming_size = scope.set.simple.len();
         if incoming_size > self.set.simple.len() {
             self.set_size(incoming_size);
@@ -339,7 +342,7 @@ impl<A: HalApi> TextureUsageScope<A> {
     pub unsafe fn merge_bind_group(
         &mut self,
         bind_group: &TextureBindGroupState<A>,
-    ) -> Result<(), UsageConflict> {
+    ) -> Result<(), ResourceUsageCompatibilityError> {
         let textures = bind_group.textures.lock();
         for t in &*textures {
             unsafe { self.merge_single(&t.texture, t.selector.clone(), t.usage)? };
@@ -366,8 +369,8 @@ impl<A: HalApi> TextureUsageScope<A> {
         texture: &Arc<Texture<A>>,
         selector: Option<TextureSelector>,
         new_state: TextureUses,
-    ) -> Result<(), UsageConflict> {
-        let index = texture.as_info().tracker_index().as_usize();
+    ) -> Result<(), ResourceUsageCompatibilityError> {
+        let index = texture.tracker_index().as_usize();
 
         self.tracker_assert_in_bounds(index);
 
@@ -379,9 +382,7 @@ impl<A: HalApi> TextureUsageScope<A> {
                 &mut self.metadata,
                 index,
                 TextureStateProvider::from_option(selector, new_state),
-                ResourceMetadataProvider::Direct {
-                    resource: Cow::Borrowed(texture),
-                },
+                ResourceMetadataProvider::Direct { resource: texture },
             )?
         };
 
@@ -424,15 +425,29 @@ impl<A: HalApi> ResourceTracker for TextureTracker<A> {
                 //RefCount 2 means that resource is hold just by DeviceTracker and this suspected resource itself
                 //so it's already been released from user and so it's not inside Registry\Storage
                 if existing_ref_count <= 2 {
+                    resource_log!(
+                        "TextureTracker::remove_abandoned: removing {}",
+                        self.metadata.get_resource_unchecked(index).error_ident()
+                    );
+
                     self.start_set.complex.remove(&index);
                     self.end_set.complex.remove(&index);
                     self.metadata.remove(index);
                     return true;
                 }
 
+                resource_log!(
+                    "TextureTracker::remove_abandoned: not removing {}, ref count {}",
+                    self.metadata.get_resource_unchecked(index).error_ident(),
+                    existing_ref_count
+                );
+
                 return false;
             }
         }
+
+        resource_log!("TextureTracker::remove_abandoned: does not contain index {index:?}",);
+
         true
     }
 }
@@ -520,8 +535,8 @@ impl<A: HalApi> TextureTracker<A> {
     ///
     /// If the ID is higher than the length of internal vectors,
     /// the vectors will be extended. A call to set_size is not needed.
-    pub fn insert_single(&mut self, resource: Arc<Texture<A>>, usage: TextureUses) {
-        let index = resource.info.tracker_index().as_usize();
+    pub fn insert_single(&mut self, resource: &Arc<Texture<A>>, usage: TextureUses) {
+        let index = resource.tracker_index().as_usize();
 
         self.allow_index(index);
 
@@ -542,9 +557,7 @@ impl<A: HalApi> TextureTracker<A> {
                 index,
                 TextureStateProvider::KnownSingle { state: usage },
                 None,
-                ResourceMetadataProvider::Direct {
-                    resource: Cow::Owned(resource),
-                },
+                ResourceMetadataProvider::Direct { resource },
             )
         };
     }
@@ -561,8 +574,8 @@ impl<A: HalApi> TextureTracker<A> {
         texture: &Arc<Texture<A>>,
         selector: TextureSelector,
         new_state: TextureUses,
-    ) -> Option<Drain<'_, PendingTransition<TextureUses>>> {
-        let index = texture.as_info().tracker_index().as_usize();
+    ) -> Drain<'_, PendingTransition<TextureUses>> {
+        let index = texture.tracker_index().as_usize();
 
         self.allow_index(index);
 
@@ -580,14 +593,12 @@ impl<A: HalApi> TextureTracker<A> {
                     state: new_state,
                 },
                 None,
-                ResourceMetadataProvider::Direct {
-                    resource: Cow::Owned(texture.clone()),
-                },
+                ResourceMetadataProvider::Direct { resource: texture },
                 &mut self.temp,
             )
         }
 
-        Some(self.temp.drain(..))
+        self.temp.drain(..)
     }
 
     /// Sets the given state for all texture in the given tracker.
@@ -696,7 +707,7 @@ impl<A: HalApi> TextureTracker<A> {
 
         let textures = bind_group_state.textures.lock();
         for t in textures.iter() {
-            let index = t.texture.as_info().tracker_index().as_usize();
+            let index = t.texture.tracker_index().as_usize();
             scope.tracker_assert_in_bounds(index);
 
             if unsafe { !scope.metadata.contains_unchecked(index) } {
@@ -869,7 +880,7 @@ unsafe fn insert_or_merge<A: HalApi>(
     index: usize,
     state_provider: TextureStateProvider<'_>,
     metadata_provider: ResourceMetadataProvider<'_, Texture<A>>,
-) -> Result<(), UsageConflict> {
+) -> Result<(), ResourceUsageCompatibilityError> {
     let currently_owned = unsafe { resource_metadata.contains_unchecked(index) };
 
     if !currently_owned {
@@ -1050,8 +1061,8 @@ unsafe fn insert<A: HalApi>(
     }
 
     unsafe {
-        let resource = metadata_provider.get_own(index);
-        resource_metadata.insert(index, resource);
+        let resource = metadata_provider.get(index);
+        resource_metadata.insert(index, resource.clone());
     }
 }
 
@@ -1062,7 +1073,7 @@ unsafe fn merge<A: HalApi>(
     index: usize,
     state_provider: TextureStateProvider<'_>,
     metadata_provider: ResourceMetadataProvider<'_, Texture<A>>,
-) -> Result<(), UsageConflict> {
+) -> Result<(), ResourceUsageCompatibilityError> {
     let current_simple = unsafe { current_state_set.simple.get_unchecked_mut(index) };
     let current_state = if *current_simple == TextureUses::COMPLEX {
         SingleOrManyStates::Many(unsafe {
@@ -1081,8 +1092,8 @@ unsafe fn merge<A: HalApi>(
             log::trace!("\ttex {index}: merge simple {current_simple:?} + {new_simple:?}");
 
             if invalid_resource_state(merged_state) {
-                return Err(UsageConflict::from_texture(
-                    unsafe { metadata_provider.get_own(index).info.id() },
+                return Err(ResourceUsageCompatibilityError::from_texture(
+                    unsafe { metadata_provider.get(index) },
                     texture_selector.clone(),
                     *current_simple,
                     new_simple,
@@ -1108,8 +1119,8 @@ unsafe fn merge<A: HalApi>(
                 log::trace!("\ttex {index}: merge {selector:?} {current_simple:?} + {new_state:?}");
 
                 if invalid_resource_state(merged_state) {
-                    return Err(UsageConflict::from_texture(
-                        unsafe { metadata_provider.get_own(index).info.id() },
+                    return Err(ResourceUsageCompatibilityError::from_texture(
+                        unsafe { metadata_provider.get(index) },
                         selector,
                         *current_simple,
                         new_state,
@@ -1149,8 +1160,8 @@ unsafe fn merge<A: HalApi>(
                     );
 
                     if invalid_resource_state(merged_state) {
-                        return Err(UsageConflict::from_texture(
-                            unsafe { metadata_provider.get_own(index).info.id() },
+                        return Err(ResourceUsageCompatibilityError::from_texture(
+                            unsafe { metadata_provider.get(index) },
                             TextureSelector {
                                 mips: mip_id..mip_id + 1,
                                 layers: layers.clone(),
@@ -1190,8 +1201,8 @@ unsafe fn merge<A: HalApi>(
                         );
 
                         if invalid_resource_state(merged_state) {
-                            return Err(UsageConflict::from_texture(
-                                unsafe { metadata_provider.get_own(index).info.id() },
+                            return Err(ResourceUsageCompatibilityError::from_texture(
+                                unsafe { metadata_provider.get(index) },
                                 TextureSelector {
                                     mips: mip_id..mip_id + 1,
                                     layers: layers.clone(),

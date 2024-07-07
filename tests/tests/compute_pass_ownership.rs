@@ -17,7 +17,15 @@ var<storage, read_write> buffer: array<vec4f>;
 
 #[gpu_test]
 static COMPUTE_PASS_RESOURCE_OWNERSHIP: GpuTestConfiguration = GpuTestConfiguration::new()
-    .parameters(TestParameters::default().test_features_limits())
+    .parameters(
+        TestParameters::default()
+            .test_features_limits()
+            // https://github.com/gfx-rs/wgpu/issues/5800
+            .skip(wgpu_test::FailureCase::backend_adapter(
+                wgpu::Backends::GL,
+                "AMD Radeon Pro WX 3200",
+            )),
+    )
     .run_async(compute_pass_resource_ownership);
 
 async fn compute_pass_resource_ownership(ctx: TestingContext) {
@@ -103,14 +111,14 @@ async fn compute_pass_query_set_ownership_pipeline_statistics(ctx: TestingContex
 }
 
 #[gpu_test]
-static COMPUTE_PASS_QUERY_TIMESTAMPS: GpuTestConfiguration =
+static COMPUTE_PASS_QUERY_SET_OWNERSHIP_TIMESTAMPS: GpuTestConfiguration =
     GpuTestConfiguration::new()
         .parameters(TestParameters::default().test_features_limits().features(
             wgpu::Features::TIMESTAMP_QUERY | wgpu::Features::TIMESTAMP_QUERY_INSIDE_PASSES,
         ))
-        .run_async(compute_pass_query_timestamps);
+        .run_async(compute_pass_query_set_ownership_timestamps);
 
-async fn compute_pass_query_timestamps(ctx: TestingContext) {
+async fn compute_pass_query_set_ownership_timestamps(ctx: TestingContext) {
     let ResourceSetup {
         gpu_buffer,
         cpu_buffer,
@@ -281,7 +289,7 @@ fn resource_setup(ctx: &TestingContext) -> ResourceSetup {
     let indirect_buffer = ctx
         .device
         .create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("gpu_buffer"),
+            label: Some("indirect_buffer"),
             usage: wgpu::BufferUsages::INDIRECT,
             contents: wgpu::util::DispatchIndirectArgs { x: 1, y: 1, z: 1 }.as_bytes(),
         });

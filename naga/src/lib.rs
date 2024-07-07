@@ -34,25 +34,6 @@ with optional span info, representing a series of statements executed in order. 
 `EntryPoint`s or `Function` is a `Block`, and `Statement` has a
 [`Block`][Statement::Block] variant.
 
-## Arenas
-
-To improve translator performance and reduce memory usage, most structures are
-stored in an [`Arena`]. An `Arena<T>` stores a series of `T` values, indexed by
-[`Handle<T>`](Handle) values, which are just wrappers around integer indexes.
-For example, a `Function`'s expressions are stored in an `Arena<Expression>`,
-and compound expressions refer to their sub-expressions via `Handle<Expression>`
-values. (When examining the serialized form of a `Module`, note that the first
-element of an `Arena` has an index of 1, not 0.)
-
-A [`UniqueArena`] is just like an `Arena`, except that it stores only a single
-instance of each value. The value type must implement `Eq` and `Hash`. Like an
-`Arena`, inserting a value into a `UniqueArena` returns a `Handle` which can be
-used to efficiently access the value, without a hash lookup. Inserting a value
-multiple times returns the same `Handle`.
-
-If the `span` feature is enabled, both `Arena` and `UniqueArena` can associate a
-source code span with each element.
-
 ## Function Calls
 
 Naga's representation of function calls is unusual. Most languages treat
@@ -277,6 +258,7 @@ pub mod compact;
 pub mod error;
 pub mod front;
 pub mod keywords;
+mod non_max_u32;
 pub mod proc;
 mod span;
 pub mod valid;
@@ -892,7 +874,7 @@ pub enum Literal {
 }
 
 /// Pipeline-overridable constant.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, Clone)]
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
@@ -910,7 +892,8 @@ pub struct Override {
 }
 
 /// Constant value.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, Clone)]
+#[cfg_attr(test, derive(PartialEq))]
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
@@ -972,7 +955,7 @@ pub struct ResourceBinding {
 }
 
 /// Variable defined at module level.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
@@ -987,7 +970,7 @@ pub struct GlobalVariable {
     pub ty: Handle<Type>,
     /// Initial value for this variable.
     ///
-    /// Expression handle lives in global_expressions
+    /// This refers to an [`Expression`] in [`Module::global_expressions`].
     pub init: Option<Handle<Expression>>,
 }
 
@@ -1003,9 +986,9 @@ pub struct LocalVariable {
     pub ty: Handle<Type>,
     /// Initial value for this variable.
     ///
-    /// This handle refers to this `LocalVariable`'s function's
-    /// [`expressions`] arena, but it is required to be an evaluated
-    /// override expression.
+    /// This handle refers to an expression in this `LocalVariable`'s function's
+    /// [`expressions`] arena, but it is required to be an evaluated override
+    /// expression.
     ///
     /// [`expressions`]: Function::expressions
     pub init: Option<Handle<Expression>>,
@@ -1093,6 +1076,9 @@ pub enum BinaryOperator {
 ///
 /// Note: these do not include load/store, which use the existing
 /// [`Expression::Load`] and [`Statement::Store`].
+///
+/// All `Handle<Expression>` values here refer to an expression in
+/// [`Function::expressions`].
 #[derive(Clone, Copy, Debug, Hash, Eq, Ord, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
@@ -1234,6 +1220,9 @@ pub enum MathFunction {
 }
 
 /// Sampling modifier to control the level of detail.
+///
+/// All `Handle<Expression>` values here refer to an expression in
+/// [`Function::expressions`].
 #[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
@@ -1250,6 +1239,9 @@ pub enum SampleLevel {
 }
 
 /// Type of an image query.
+///
+/// All `Handle<Expression>` values here refer to an expression in
+/// [`Function::expressions`].
 #[derive(Clone, Copy, Debug, PartialEq)]
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
@@ -1284,6 +1276,12 @@ pub enum SwizzleComponent {
     W = 3,
 }
 
+/// The specific behavior of a [`SubgroupGather`] statement.
+///
+/// All `Handle<Expression>` values here refer to an expression in
+/// [`Function::expressions`].
+///
+/// [`SubgroupGather`]: Statement::SubgroupGather
 #[derive(Clone, Copy, Debug, Hash, Eq, Ord, PartialEq, PartialOrd)]
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
@@ -1348,7 +1346,17 @@ bitflags::bitflags! {
 /// An expression that can be evaluated to obtain a value.
 ///
 /// This is a Single Static Assignment (SSA) scheme similar to SPIR-V.
-#[derive(Clone, Debug, PartialEq)]
+///
+/// When an `Expression` variant holds `Handle<Expression>` fields, they refer
+/// to another expression in the same arena, unless explicitly noted otherwise.
+/// One `Arena<Expression>` may only refer to a different arena indirectly, via
+/// [`Constant`] or [`Override`] expressions, which hold handles for their
+/// respective types.
+///
+/// [`Constant`]: Expression::Constant
+/// [`Override`]: Expression::Override
+#[derive(Clone, Debug)]
+#[cfg_attr(test, derive(PartialEq))]
 #[cfg_attr(feature = "serialize", derive(Serialize))]
 #[cfg_attr(feature = "deserialize", derive(Deserialize))]
 #[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
@@ -1484,7 +1492,7 @@ pub enum Expression {
         gather: Option<SwizzleComponent>,
         coordinate: Handle<Expression>,
         array_index: Option<Handle<Expression>>,
-        /// Expression handle lives in global_expressions
+        /// This refers to an expression in [`Module::global_expressions`].
         offset: Option<Handle<Expression>>,
         level: SampleLevel,
         depth_ref: Option<Handle<Expression>>,
@@ -1747,6 +1755,9 @@ pub enum RayQueryFunction {
 
 //TODO: consider removing `Clone`. It's not valid to clone `Statement::Emit` anyway.
 /// Instructions which make up an executable block.
+///
+/// `Handle<Expression>` and `Range<Expression>` values in `Statement` variants
+/// refer to expressions in [`Function::expressions`], unless otherwise noted.
 // Clone is used only for error reporting and is not intended for end users
 #[derive(Clone, Debug)]
 #[cfg_attr(feature = "serialize", derive(Serialize))]
@@ -2105,8 +2116,18 @@ pub struct Function {
     pub local_variables: Arena<LocalVariable>,
     /// Expressions used inside this function.
     ///
-    /// An `Expression` must occur before all other `Expression`s that use its
-    /// value.
+    /// If an [`Expression`] is in this arena, then its subexpressions are in this
+    /// arena too. In other words, every `Handle<Expression>` in this arena
+    /// refers to an [`Expression`] in this arena too. The only way this arena
+    /// can refer to [`Module::global_expressions`] is indirectly, via
+    /// [`Constant`] and [`Override`] expressions, which hold handles for their
+    /// respective types.
+    ///
+    /// An [`Expression`] must occur before all other [`Expression`]s that use
+    /// its value.
+    ///
+    /// [`Constant`]: Expression::Constant
+    /// [`Override`]: Expression::Override
     pub expressions: Arena<Expression>,
     /// Map of expressions that have associated variable names
     pub named_expressions: NamedExpressions,
@@ -2246,6 +2267,10 @@ pub struct Module {
     /// Arena for the global variables defined in this module.
     pub global_variables: Arena<GlobalVariable>,
     /// [Constant expressions] and [override expressions] used by this module.
+    ///
+    /// If an expression is in this arena, then its subexpressions are in this
+    /// arena too. In other words, every `Handle<Expression>` in this arena
+    /// refers to an [`Expression`] in this arena too.
     ///
     /// Each `Expression` must occur in the arena before any
     /// `Expression` that uses its value.
