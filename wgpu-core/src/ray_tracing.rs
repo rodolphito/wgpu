@@ -1,7 +1,6 @@
 use crate::{
     command::CommandEncoderError,
     device::DeviceError,
-    hal_api::HalApi,
     id::{BlasId, BufferId, TlasId},
     resource::CreateBufferError,
 };
@@ -194,24 +193,24 @@ pub(crate) enum BlasActionKind {
 }
 
 #[derive(Debug, Clone)]
-pub(crate) enum TlasActionKind<A: HalApi> {
+pub(crate) enum TlasActionKind {
     Build {
         build_index: NonZeroU64,
-        dependencies: Vec<Arc<Blas<A>>>,
+        dependencies: Vec<Arc<Blas>>,
     },
     Use,
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct BlasAction<A: HalApi> {
-    pub blas: Arc<Blas<A>>,
+pub(crate) struct BlasAction {
+    pub blas: Arc<Blas>,
     pub kind: BlasActionKind,
 }
 
 #[derive(Debug, Clone)]
-pub(crate) struct TlasAction<A: HalApi> {
-    pub tlas: Arc<Tlas<A>>,
-    pub kind: TlasActionKind<A>,
+pub(crate) struct TlasAction {
+    pub tlas: Arc<Tlas>,
+    pub kind: TlasActionKind,
 }
 
 #[derive(Debug, Clone)]
@@ -257,8 +256,9 @@ pub struct TraceTlasPackage {
     pub lowest_unmodified: u32,
 }
 
-pub(crate) fn get_raw_tlas_instance_size<A: HalApi>() -> usize {
-    match A::VARIANT {
+pub(crate) fn get_raw_tlas_instance_size(backend: wgt::Backend) -> usize {
+    // TODO: this should be provided by the backend
+    match backend {
         wgt::Backend::Empty => 0,
         wgt::Backend::Vulkan => 64,
         _ => unimplemented!(),
@@ -274,11 +274,13 @@ struct RawTlasInstance {
     acceleration_structure_reference: u64,
 }
 
-pub(crate) fn tlas_instance_into_bytes<A: HalApi>(
+pub(crate) fn tlas_instance_into_bytes(
     instance: &TlasInstance,
     blas_address: u64,
+    backend: wgt::Backend,
 ) -> Vec<u8> {
-    match A::VARIANT {
+    // TODO: get the device to do this
+    match backend {
         wgt::Backend::Empty => vec![],
         wgt::Backend::Vulkan => {
             const MAX_U24: u32 = (1u32 << 24u32) - 1u32;
@@ -292,7 +294,7 @@ pub(crate) fn tlas_instance_into_bytes<A: HalApi>(
             let temp: *const _ = &temp;
             unsafe {
                 slice::from_raw_parts::<u8>(
-                    temp as *const u8,
+                    temp.cast::<u8>(),
                     std::mem::size_of::<RawTlasInstance>(),
                 )
                 .to_vec()
