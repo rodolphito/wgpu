@@ -1,6 +1,8 @@
 use std::sync::atomic::AtomicBool;
 
-use wgpu_test::{fail, gpu_test, FailureCase, GpuTestConfiguration, TestParameters};
+use wgpu_test::{
+    fail, gpu_test, FailureCase, GpuTestConfiguration, TestParameters, TestingContext,
+};
 
 #[gpu_test]
 static CROSS_DEVICE_BIND_GROUP_USAGE: GpuTestConfiguration = GpuTestConfiguration::new()
@@ -107,7 +109,7 @@ static REQUEST_DEVICE_ERROR_MESSAGE_NATIVE: GpuTestConfiguration =
 async fn request_device_error_message() {
     // Not using initialize_test() because that doesn't let us catch the error
     // nor .await anything
-    let (_instance, adapter, _surface_guard) = wgpu_test::initialize_adapter(0).await;
+    let (_instance, adapter, _surface_guard) = wgpu_test::initialize_adapter(0, false).await;
 
     let device_error = adapter
         .request_device(
@@ -147,14 +149,6 @@ async fn request_device_error_message() {
 
 // This is a test of device behavior after device.destroy. Specifically, all operations
 // should trigger errors since the device is lost.
-//
-// On DX12 this test fails with a validation error in the very artificial actions taken
-// after lose the device. The error is "ID3D12CommandAllocator::Reset: The command
-// allocator cannot be reset because a command list is currently being recorded with the
-// allocator." That may indicate that DX12 doesn't like opened command buffers staying
-// open even after they return an error. For now, this test is skipped on DX12.
-//
-// The DX12 issue may be related to https://github.com/gfx-rs/wgpu/issues/3193.
 #[gpu_test]
 static DEVICE_DESTROY_THEN_MORE: GpuTestConfiguration = GpuTestConfiguration::new()
     .parameters(TestParameters::default().features(wgpu::Features::CLEAR_TEXTURE))
@@ -304,7 +298,7 @@ static DEVICE_DESTROY_THEN_MORE: GpuTestConfiguration = GpuTestConfiguration::ne
                 ctx.device
                     .create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
             },
-            None,
+            Some("device with '' label is invalid"),
         );
 
         // Creating a buffer should fail.
@@ -318,7 +312,7 @@ static DEVICE_DESTROY_THEN_MORE: GpuTestConfiguration = GpuTestConfiguration::ne
                     mapped_at_creation: false,
                 });
             },
-            None,
+            Some("device with '' label is invalid"),
         );
 
         // Creating a texture should fail.
@@ -340,7 +334,7 @@ static DEVICE_DESTROY_THEN_MORE: GpuTestConfiguration = GpuTestConfiguration::ne
                     view_formats: &[],
                 });
             },
-            None,
+            Some("device with '' label is invalid"),
         );
 
         // Texture clear should fail.
@@ -358,7 +352,7 @@ static DEVICE_DESTROY_THEN_MORE: GpuTestConfiguration = GpuTestConfiguration::ne
                     },
                 );
             },
-            None,
+            Some("device with '' label is invalid"),
         );
 
         // Creating a compute pass should fail.
@@ -370,7 +364,7 @@ static DEVICE_DESTROY_THEN_MORE: GpuTestConfiguration = GpuTestConfiguration::ne
                     timestamp_writes: None,
                 });
             },
-            None,
+            Some("device with '' label is invalid"),
         );
 
         // Creating a render pass should fail.
@@ -389,7 +383,7 @@ static DEVICE_DESTROY_THEN_MORE: GpuTestConfiguration = GpuTestConfiguration::ne
                     occlusion_query_set: None,
                 });
             },
-            None,
+            Some("device with '' label is invalid"),
         );
 
         // Copying a buffer to a buffer should fail.
@@ -404,7 +398,7 @@ static DEVICE_DESTROY_THEN_MORE: GpuTestConfiguration = GpuTestConfiguration::ne
                     256,
                 );
             },
-            None,
+            Some("device with '' label is invalid"),
         );
 
         // Copying a buffer to a texture should fail.
@@ -424,7 +418,7 @@ static DEVICE_DESTROY_THEN_MORE: GpuTestConfiguration = GpuTestConfiguration::ne
                     texture_extent,
                 );
             },
-            None,
+            Some("device with '' label is invalid"),
         );
 
         // Copying a texture to a buffer should fail.
@@ -444,7 +438,7 @@ static DEVICE_DESTROY_THEN_MORE: GpuTestConfiguration = GpuTestConfiguration::ne
                     texture_extent,
                 );
             },
-            None,
+            Some("device with '' label is invalid"),
         );
 
         // Copying a texture to a texture should fail.
@@ -457,7 +451,7 @@ static DEVICE_DESTROY_THEN_MORE: GpuTestConfiguration = GpuTestConfiguration::ne
                     texture_extent,
                 );
             },
-            None,
+            Some("device with '' label is invalid"),
         );
 
         // Creating a bind group layout should fail.
@@ -470,7 +464,7 @@ static DEVICE_DESTROY_THEN_MORE: GpuTestConfiguration = GpuTestConfiguration::ne
                         entries: &[],
                     });
             },
-            None,
+            Some("device with '' label is invalid"),
         );
 
         // Creating a bind group should fail.
@@ -488,7 +482,7 @@ static DEVICE_DESTROY_THEN_MORE: GpuTestConfiguration = GpuTestConfiguration::ne
                     }],
                 });
             },
-            None,
+            Some("device with '' label is invalid"),
         );
 
         // Creating a pipeline layout should fail.
@@ -502,7 +496,7 @@ static DEVICE_DESTROY_THEN_MORE: GpuTestConfiguration = GpuTestConfiguration::ne
                         push_constant_ranges: &[],
                     });
             },
-            None,
+            Some("device with '' label is invalid"),
         );
 
         // Creating a shader module should fail.
@@ -515,7 +509,7 @@ static DEVICE_DESTROY_THEN_MORE: GpuTestConfiguration = GpuTestConfiguration::ne
                         source: wgpu::ShaderSource::Wgsl(std::borrow::Cow::Borrowed("")),
                     });
             },
-            None,
+            Some("device with '' label is invalid"),
         );
 
         // Creating a shader module spirv should fail.
@@ -528,7 +522,7 @@ static DEVICE_DESTROY_THEN_MORE: GpuTestConfiguration = GpuTestConfiguration::ne
                         source: std::borrow::Cow::Borrowed(&[]),
                     });
             },
-            None,
+            Some("device with '' label is invalid"),
         );
 
         // Creating a render pipeline should fail.
@@ -541,7 +535,7 @@ static DEVICE_DESTROY_THEN_MORE: GpuTestConfiguration = GpuTestConfiguration::ne
                         layout: None,
                         vertex: wgpu::VertexState {
                             module: &shader_module,
-                            entry_point: "",
+                            entry_point: Some(""),
                             compilation_options: Default::default(),
                             buffers: &[],
                         },
@@ -553,7 +547,7 @@ static DEVICE_DESTROY_THEN_MORE: GpuTestConfiguration = GpuTestConfiguration::ne
                         cache: None,
                     });
             },
-            None,
+            Some("device with '' label is invalid"),
         );
 
         // Creating a compute pipeline should fail.
@@ -565,12 +559,12 @@ static DEVICE_DESTROY_THEN_MORE: GpuTestConfiguration = GpuTestConfiguration::ne
                         label: None,
                         layout: None,
                         module: &shader_module,
-                        entry_point: "",
+                        entry_point: None,
                         compilation_options: Default::default(),
                         cache: None,
                     });
             },
-            None,
+            Some("device with '' label is invalid"),
         );
 
         // Creating a compute pipeline should fail.
@@ -582,12 +576,12 @@ static DEVICE_DESTROY_THEN_MORE: GpuTestConfiguration = GpuTestConfiguration::ne
                         label: None,
                         layout: None,
                         module: &shader_module,
-                        entry_point: "",
+                        entry_point: None,
                         compilation_options: Default::default(),
                         cache: None,
                     });
             },
-            None,
+            Some("device with '' label is invalid"),
         );
 
         // Buffer map should fail.
@@ -598,7 +592,7 @@ static DEVICE_DESTROY_THEN_MORE: GpuTestConfiguration = GpuTestConfiguration::ne
                     .slice(..)
                     .map_async(wgpu::MapMode::Write, |_| ());
             },
-            None,
+            Some("device with '' label is invalid"),
         );
 
         // Buffer unmap should fail.
@@ -607,7 +601,7 @@ static DEVICE_DESTROY_THEN_MORE: GpuTestConfiguration = GpuTestConfiguration::ne
             || {
                 buffer_for_unmap.unmap();
             },
-            None,
+            Some("device with '' label is invalid"),
         );
     });
 
@@ -831,7 +825,7 @@ static DIFFERENT_BGL_ORDER_BW_SHADER_AND_API: GpuTestConfiguration = GpuTestConf
             .create_render_pipeline(&wgpu::RenderPipelineDescriptor {
                 fragment: Some(wgpu::FragmentState {
                     module: &trivial_shaders_with_some_reversed_bindings,
-                    entry_point: "fs_main",
+                    entry_point: Some("fs_main"),
                     compilation_options: Default::default(),
                     targets: &[Some(wgt::ColorTargetState {
                         format: wgt::TextureFormat::Bgra8Unorm,
@@ -845,7 +839,7 @@ static DIFFERENT_BGL_ORDER_BW_SHADER_AND_API: GpuTestConfiguration = GpuTestConf
                 label: None,
                 vertex: wgpu::VertexState {
                     module: &trivial_shaders_with_some_reversed_bindings,
-                    entry_point: "vs_main",
+                    entry_point: Some("vs_main"),
                     compilation_options: Default::default(),
                     buffers: &[],
                 },
@@ -915,4 +909,27 @@ static DEVICE_DESTROY_THEN_BUFFER_CLEANUP: GpuTestConfiguration = GpuTestConfigu
 
         // Poll the device, which should try to clean up its resources.
         ctx.instance.poll_all(true);
+    });
+
+#[gpu_test]
+static DEVICE_AND_QUEUE_HAVE_DIFFERENT_IDS: GpuTestConfiguration = GpuTestConfiguration::new()
+    .parameters(TestParameters::default())
+    .run_async(|ctx| async move {
+        let TestingContext {
+            adapter,
+            device_features,
+            device_limits,
+            device,
+            queue,
+            ..
+        } = ctx;
+
+        drop(device);
+
+        let (device2, queue2) =
+            wgpu_test::initialize_device(&adapter, device_features, device_limits).await;
+
+        drop(queue);
+        drop(device2);
+        drop(queue2); // this would previously panic since we would try to use the Device ID to drop the Queue
     });

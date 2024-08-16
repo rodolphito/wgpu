@@ -1,6 +1,6 @@
 // Lets keep these on one line
 #[rustfmt::skip]
-pub const TEXTURE_FORMAT_LIST: [wgpu::TextureFormat; 120] = [
+pub const TEXTURE_FORMAT_LIST: [wgpu::TextureFormat; 117] = [
     wgpu::TextureFormat::R8Unorm,
     wgpu::TextureFormat::R8Snorm,
     wgpu::TextureFormat::R8Uint,
@@ -29,9 +29,10 @@ pub const TEXTURE_FORMAT_LIST: [wgpu::TextureFormat; 120] = [
     wgpu::TextureFormat::Rgba8Sint,
     wgpu::TextureFormat::Bgra8Unorm,
     wgpu::TextureFormat::Bgra8UnormSrgb,
+    wgpu::TextureFormat::Rgb9e5Ufloat,
     wgpu::TextureFormat::Rgb10a2Uint,
     wgpu::TextureFormat::Rgb10a2Unorm,
-    wgpu::TextureFormat::Rg11b10Float,
+    wgpu::TextureFormat::Rg11b10UFloat,
     wgpu::TextureFormat::R64Uint,
     wgpu::TextureFormat::Rg32Uint,
     wgpu::TextureFormat::Rg32Sint,
@@ -46,14 +47,10 @@ pub const TEXTURE_FORMAT_LIST: [wgpu::TextureFormat; 120] = [
     wgpu::TextureFormat::Rgba32Float,
     wgpu::TextureFormat::Stencil8,
     wgpu::TextureFormat::Depth16Unorm,
-    wgpu::TextureFormat::Depth32Float,
-    wgpu::TextureFormat::Depth32FloatStencil8,
     wgpu::TextureFormat::Depth24Plus,
     wgpu::TextureFormat::Depth24PlusStencil8,
-    wgpu::TextureFormat::Rgb9e5Ufloat,
-    wgpu::TextureFormat::Rgb10a2Uint,
-    wgpu::TextureFormat::Rgb10a2Unorm,
-    wgpu::TextureFormat::Rg11b10Float,
+    wgpu::TextureFormat::Depth32Float,
+    wgpu::TextureFormat::Depth32FloatStencil8,
     wgpu::TextureFormat::NV12,
     wgpu::TextureFormat::Bc1RgbaUnorm,
     wgpu::TextureFormat::Bc1RgbaUnormSrgb,
@@ -122,6 +119,19 @@ pub const TEXTURE_FORMAT_LIST: [wgpu::TextureFormat; 120] = [
     wgpu::TextureFormat::Astc { block: wgpu::AstcBlock::B12x12, channel: wgpu::AstcChannel::UnormSrgb },
     wgpu::TextureFormat::Astc { block: wgpu::AstcBlock::B12x12, channel: wgpu::AstcChannel::Hdr },
 ];
+
+#[test]
+fn test_uniqueness_in_texture_format_list() {
+    use std::collections::HashSet;
+
+    let uniq: HashSet<wgpu::TextureFormat> = TEXTURE_FORMAT_LIST.into_iter().collect();
+    let mut duplicated = TEXTURE_FORMAT_LIST.to_vec();
+    uniq.iter().for_each(|u| {
+        let first_occurrence = duplicated.iter().position(|el| u == el).unwrap();
+        duplicated.remove(first_occurrence);
+    });
+    assert_eq!(duplicated, vec![]);
+}
 
 pub fn max_texture_format_string_size() -> usize {
     TEXTURE_FORMAT_LIST
