@@ -57,6 +57,8 @@ By @wumpf in [#6069](https://github.com/gfx-rs/wgpu/pull/6069), [#6099](https://
 
 ### New Features
 
+64 bit integer atomic support in shaders. By @atlv24 in [#5383](https://github.com/gfx-rs/wgpu/pull/5383)
+
 #### Naga
 
 * Support constant evaluation for `firstLeadingBit` and `firstTrailingBit` numeric built-ins in WGSL. Front-ends that translate to these built-ins also benefit from constant evaluation. By @ErichDonGubler in [#5101](https://github.com/gfx-rs/wgpu/pull/5101).
@@ -406,8 +408,6 @@ By @exrook and @lichtso in [#5301](https://github.com/gfx-rs/wgpu/pull/5301)
 Supported on Vulkan, DX12 (requires DXC) and Metal (with MSL 2.3+ support).
 
 By @atlv24 and @cwfitzgerald in [#5154](https://github.com/gfx-rs/wgpu/pull/5154)
-
-64 bit integer atomic support in shaders. By @atlv24 in [#5383](https://github.com/gfx-rs/wgpu/pull/5383)
 
 ### New features
 
