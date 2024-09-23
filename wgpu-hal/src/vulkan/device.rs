@@ -15,6 +15,13 @@ use std::{
 };
 
 impl super::DeviceShared {
+    /// Set the name of `object` to `name`.
+    ///
+    /// If `name` contains an interior null byte, then the name set will be truncated to that byte.
+    ///
+    /// # Safety
+    ///
+    /// It must be valid to set `object`'s debug name
     pub(super) unsafe fn set_object_name(&self, object: impl vk::Handle, name: &str) {
         let Some(extension) = self.extension_fns.debug_utils.as_ref() else {
             return;
@@ -44,7 +51,7 @@ impl super::DeviceShared {
             &buffer_vec
         };
 
-        let name = unsafe { CStr::from_bytes_with_nul_unchecked(name_bytes) };
+        let name = CStr::from_bytes_until_nul(name_bytes).expect("We have added a null byte");
 
         let _result = unsafe {
             extension.set_debug_utils_object_name(
@@ -290,7 +297,7 @@ impl super::DeviceShared {
         for &raw in self.framebuffers.lock().values() {
             unsafe { self.raw.destroy_framebuffer(raw, None) };
         }
-        if self.handle_is_owned {
+        if self.drop_guard.is_none() {
             unsafe { self.raw.destroy_device(None) };
         }
     }
@@ -642,19 +649,20 @@ impl super::Device {
             view_formats: wgt_view_formats,
             surface_semaphores,
             next_semaphore_index: 0,
+            next_present_time: None,
         })
     }
 
     /// # Safety
     ///
     /// - `vk_image` must be created respecting `desc`
-    /// - If `drop_guard` is `Some`, the application must manually destroy the image handle. This
-    ///   can be done inside the `Drop` impl of `drop_guard`.
+    /// - If `drop_callback` is [`None`], wgpu-hal will take ownership of `vk_image`. If
+    ///   `drop_callback` is [`Some`], `vk_image` must be valid until the callback is called.
     /// - If the `ImageCreateFlags` does not contain `MUTABLE_FORMAT`, the `view_formats` of `desc` must be empty.
     pub unsafe fn texture_from_raw(
         vk_image: vk::Image,
         desc: &crate::TextureDescriptor,
-        drop_guard: Option<crate::DropGuard>,
+        drop_callback: Option<crate::DropCallback>,
     ) -> super::Texture {
         let mut raw_flags = vk::ImageCreateFlags::empty();
         let mut view_formats = vec![];
@@ -672,6 +680,8 @@ impl super::Device {
         if desc.format.is_multi_planar_format() {
             raw_flags |= vk::ImageCreateFlags::MUTABLE_FORMAT;
         }
+
+        let drop_guard = crate::DropGuard::from_option(drop_callback);
 
         super::Texture {
             raw: vk_image,
@@ -759,6 +769,7 @@ impl super::Device {
                         temp_options.debug_info = Some(naga::back::spv::DebugInfo {
                             source_code: &debug.source_code,
                             file_name: debug.file_name.as_ref().as_ref(),
+                            language: naga::back::spv::SourceLanguage::WGSL,
                         })
                     }
                     if !stage.zero_initialize_workgroup_memory {
@@ -953,6 +964,10 @@ impl crate::Device for super::Device {
         self.counters.buffers.sub(1);
     }
 
+    unsafe fn add_raw_buffer(&self, _buffer: &super::Buffer) {
+        self.counters.buffers.add(1);
+    }
+
     unsafe fn map_buffer(
         &self,
         buffer: &super::Buffer,
@@ -967,14 +982,14 @@ impl crate::Device for super::Device {
                 .contains(gpu_alloc::MemoryPropertyFlags::HOST_COHERENT);
             Ok(crate::BufferMapping { ptr, is_coherent })
         } else {
-            super::hal_usage_error("tried to map external buffer")
+            crate::hal_usage_error("tried to map external buffer")
         }
     }
     unsafe fn unmap_buffer(&self, buffer: &super::Buffer) {
         if let Some(ref block) = buffer.block {
             unsafe { block.lock().unmap(&*self.shared) };
         } else {
-            super::hal_usage_error("tried to unmap external buffer")
+            crate::hal_usage_error("tried to unmap external buffer")
         }
     }
 
@@ -1122,6 +1137,10 @@ impl crate::Device for super::Device {
         }
 
         self.counters.textures.sub(1);
+    }
+
+    unsafe fn add_raw_texture(&self, _texture: &super::Texture) {
+        self.counters.textures.add(1);
     }
 
     unsafe fn create_texture_view(
@@ -1724,6 +1743,7 @@ impl crate::Device for super::Device {
                         .map(|d| naga::back::spv::DebugInfo {
                             source_code: d.source_code.as_ref(),
                             file_name: d.file_name.as_ref().as_ref(),
+                            language: naga::back::spv::SourceLanguage::WGSL,
                         });
                 if !desc.runtime_checks {
                     naga_options.bounds_check_policies = naga::proc::BoundsCheckPolicies {
@@ -2517,7 +2537,7 @@ impl super::DeviceShared {
                             }
                         }
                         None => {
-                            super::hal_usage_error(format!(
+                            crate::hal_usage_error(format!(
                                 "no signals reached value {}",
                                 wait_value
                             ));
@@ -2534,7 +2554,7 @@ impl From<gpu_alloc::AllocationError> for crate::DeviceError {
         use gpu_alloc::AllocationError as Ae;
         match error {
             Ae::OutOfDeviceMemory | Ae::OutOfHostMemory | Ae::TooManyObjects => Self::OutOfMemory,
-            Ae::NoCompatibleMemoryTypes => super::hal_usage_error(error),
+            Ae::NoCompatibleMemoryTypes => crate::hal_usage_error(error),
         }
     }
 }
@@ -2543,7 +2563,7 @@ impl From<gpu_alloc::MapError> for crate::DeviceError {
         use gpu_alloc::MapError as Me;
         match error {
             Me::OutOfDeviceMemory | Me::OutOfHostMemory | Me::MapFailed => Self::OutOfMemory,
-            Me::NonHostVisible | Me::AlreadyMapped => super::hal_usage_error(error),
+            Me::NonHostVisible | Me::AlreadyMapped => crate::hal_usage_error(error),
         }
     }
 }

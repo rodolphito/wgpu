@@ -3,7 +3,11 @@ use super::conv;
 use arrayvec::ArrayVec;
 use ash::vk;
 
-use std::{mem, ops::Range, slice};
+use std::{
+    mem::{self, size_of},
+    ops::Range,
+    slice,
+};
 
 const ALLOCATION_GRANULARITY: u32 = 16;
 const DST_IMAGE_LAYOUT: vk::ImageLayout = vk::ImageLayout::TRANSFER_DST_OPTIMAL;
@@ -499,6 +503,9 @@ impl crate::CommandEncoder for super::CommandEncoder {
                     for triangles in in_geometries {
                         let mut triangle_data =
                             vk::AccelerationStructureGeometryTrianglesDataKHR::default()
+                                // IndexType::NONE_KHR is not set by default (due to being provided by VK_KHR_acceleration_structure) but unless there is an
+                                // index buffer we need to have IndexType::NONE_KHR as our index type.
+                                .index_type(vk::IndexType::NONE_KHR)
                                 .vertex_data(vk::DeviceOrHostAddressConstKHR {
                                     device_address: get_device_address(triangles.vertex_buffer),
                                 })
@@ -1012,7 +1019,7 @@ impl crate::CommandEncoder for super::CommandEncoder {
                 buffer.raw,
                 offset,
                 draw_count,
-                mem::size_of::<wgt::DrawIndirectArgs>() as u32,
+                size_of::<wgt::DrawIndirectArgs>() as u32,
             )
         };
     }
@@ -1028,7 +1035,7 @@ impl crate::CommandEncoder for super::CommandEncoder {
                 buffer.raw,
                 offset,
                 draw_count,
-                mem::size_of::<wgt::DrawIndexedIndirectArgs>() as u32,
+                size_of::<wgt::DrawIndexedIndirectArgs>() as u32,
             )
         };
     }
@@ -1040,7 +1047,7 @@ impl crate::CommandEncoder for super::CommandEncoder {
         count_offset: wgt::BufferAddress,
         max_count: u32,
     ) {
-        let stride = mem::size_of::<wgt::DrawIndirectArgs>() as u32;
+        let stride = size_of::<wgt::DrawIndirectArgs>() as u32;
         match self.device.extension_fns.draw_indirect_count {
             Some(ref t) => {
                 unsafe {
@@ -1066,7 +1073,7 @@ impl crate::CommandEncoder for super::CommandEncoder {
         count_offset: wgt::BufferAddress,
         max_count: u32,
     ) {
-        let stride = mem::size_of::<wgt::DrawIndexedIndirectArgs>() as u32;
+        let stride = size_of::<wgt::DrawIndexedIndirectArgs>() as u32;
         match self.device.extension_fns.draw_indirect_count {
             Some(ref t) => {
                 unsafe {

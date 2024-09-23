@@ -32,7 +32,7 @@ pub const TEXTURE_FORMAT_LIST: [wgpu::TextureFormat; 117] = [
     wgpu::TextureFormat::Rgb9e5Ufloat,
     wgpu::TextureFormat::Rgb10a2Uint,
     wgpu::TextureFormat::Rgb10a2Unorm,
-    wgpu::TextureFormat::Rg11b10UFloat,
+    wgpu::TextureFormat::Rg11b10Ufloat,
     wgpu::TextureFormat::R64Uint,
     wgpu::TextureFormat::Rg32Uint,
     wgpu::TextureFormat::Rg32Sint,
