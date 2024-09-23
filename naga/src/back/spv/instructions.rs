@@ -702,6 +702,22 @@ impl super::Instruction {
         instruction
     }
 
+    pub(super) fn image_texel_pointer(
+        result_type_id: Word,
+        id: Word,
+        image: Word,
+        coordinates: Word,
+        sample: Word,
+    ) -> Self {
+        let mut instruction = Self::new(Op::ImageTexelPointer);
+        instruction.add_operand(result_type_id);
+        instruction.add_operand(id);
+        instruction.add_operand(image);
+        instruction.add_operand(coordinates);
+        instruction.add_operand(sample);
+        instruction
+    }
+
     pub(super) fn image_atomic(
         image: Word,
         coordinates: Word,

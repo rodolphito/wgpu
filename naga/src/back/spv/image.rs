@@ -243,6 +243,63 @@ struct Atomic {
     value_id: Word,
 }
 
+struct TexelPointer {
+    /// The type id produced by the actual image access instruction.
+    type_id: Word,
+
+    /// The id of the image being accessed.
+    image_id: Word,
+}
+
+impl Access for TexelPointer {
+    type Output = Word;
+
+    /// Write an instruction to access a given texel of this image.
+    fn generate(
+        &self,
+        id_gen: &mut IdGenerator,
+        coordinates_id: Word,
+        level_id: Option<Word>,
+        sample_id: Option<Word>,
+        block: &mut Block,
+    ) -> Word {
+        let texel_id = id_gen.next();
+        let mut instruction = Instruction::image_texel_pointer(
+            self.type_id,
+            texel_id,
+            self.image_id,
+            coordinates_id,
+            sample_id.unwrap(),
+        );
+
+        match (level_id, sample_id) {
+            (None, None) => {}
+            (Some(level_id), None) => {
+                instruction.add_operand(spirv::ImageOperands::LOD.bits());
+                instruction.add_operand(level_id);
+            }
+            (None, Some(sample_id)) => {
+                instruction.add_operand(spirv::ImageOperands::SAMPLE.bits());
+                instruction.add_operand(sample_id);
+            }
+            // There's no such thing as a multi-sampled mipmap.
+            (Some(_), Some(_)) => unreachable!(),
+        }
+
+        block.body.push(instruction);
+
+        texel_id
+    }
+
+    fn result_type(&self) -> Word {
+        self.type_id
+    }
+
+    fn out_of_bounds_value(&self, ctx: &mut BlockContext<'_>) -> Word {
+        ctx.writer.get_constant_null(self.type_id)
+    }
+}
+
 impl Access for Atomic {
     /// Stores don't generate any value.
     type Output = ();
