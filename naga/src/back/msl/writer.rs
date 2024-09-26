@@ -1196,17 +1196,18 @@ impl<W: Write> Writer<W> {
         context: &StatementContext,
     ) -> BackendResult {
         write!(self.out, "{level}")?;
+        write!(self.out, "atomic_{}_explicit(&", fun.to_msl_64_bit()?)?;
         self.put_expression(image, &context.expression, false)?;
-        write!(self.out, ".write(")?;
-        self.put_expression(value, &context.expression, true)?;
-        write!(self.out, ", ")?;
+        write!(self.out, "[")?;
         // coordinates in IR are int, but Metal expects uint
         self.put_cast_to_uint_scalar_or_vector(address.coordinate, &context.expression)?;
         if let Some(expr) = address.array_index {
             write!(self.out, ", ")?;
             self.put_expression(expr, &context.expression, true)?;
         }
-        writeln!(self.out, ");")?;
+        write!(self.out, "], ")?;
+        self.put_expression(value, &context.expression, true)?;
+        writeln!(self.out, ", memory_order_relaxed);")?;
 
         Ok(())
     }
