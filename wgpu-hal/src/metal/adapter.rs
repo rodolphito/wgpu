@@ -1041,7 +1041,7 @@ impl super::PrivateCapabilities {
             Tf::Rgba8Sint => RGBA8Sint,
             Tf::Rgb10a2Uint => RGB10A2Uint,
             Tf::Rgb10a2Unorm => RGB10A2Unorm,
-            Tf::Rg11b10UFloat => RG11B10float,
+            Tf::Rg11b10Ufloat => RG11B10Float,
             Tf::R64Uint => RG32Uint,
             Tf::Rg32Uint => RG32Uint,
             Tf::Rg32Sint => RG32Sint,
