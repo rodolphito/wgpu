@@ -1200,7 +1200,9 @@ impl<'w> BlockContext<'w> {
     ) -> Result<(), Error> {
         let pointer_type_id = self.get_expression_type_id(&crate::proc::TypeResolution::Value(
             crate::TypeInner::ValuePointer {
-                space: crate::AddressSpace::Uniform,
+                space: crate::AddressSpace::Storage {
+                    access: crate::StorageAccess::all(),
+                },
                 size: None,
                 scalar: crate::Scalar {
                     kind: crate::ScalarKind::Uint,
