@@ -14,8 +14,8 @@ int ZeroValueint() {
 [numthreads(2, 1, 1)]
 void cs_main(uint3 id : SV_GroupThreadID)
 {
-    image.InterlockedMax64(int2(0, 0),1uL);
+    InterlockedMax(image[int2(0, 0)],1uL);
     GroupMemoryBarrierWithGroupSync();
-    image.InterlockedMin64(int2(0, 0),1uL);
+    InterlockedMin(image[int2(0, 0)],1uL);
     return;
 }

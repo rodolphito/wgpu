@@ -2219,15 +2219,11 @@ impl<'a, W: fmt::Write> super::Writer<'a, W> {
                 write!(self.out, "{level}")?;
 
                 let fun_str = fun.to_hlsl_suffix();
-                let width = match func_ctx.resolve_type(value, &module.types) {
-                    &TypeInner::Scalar(Scalar { width: 8, .. }) => "64",
-                    _ => "",
-                };
+                write!(self.out, "Interlocked{fun_str}(")?;
                 self.write_expr(module, image, func_ctx)?;
-                write!(self.out, ".Interlocked{fun_str}{width}(")?;
-
+                write!(self.out, "[")?;
                 self.write_expr(module, coordinate, func_ctx)?;
-                write!(self.out, ",")?;
+                write!(self.out, "],")?;
 
                 self.write_expr(module, value, func_ctx)?;
                 writeln!(self.out, ");")?;
