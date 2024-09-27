@@ -257,15 +257,13 @@ impl StatementGraph {
                 S::ImageAtomic {
                     image,
                     coordinate,
-                    array_index,
+                    sample,
                     fun: _,
                     value,
                 } => {
                     self.dependencies.push((id, image, "image"));
                     self.dependencies.push((id, coordinate, "coordinate"));
-                    if let Some(expr) = array_index {
-                        self.dependencies.push((id, expr, "array_index"));
-                    }
+                    self.dependencies.push((id, sample, "sample"));
                     self.dependencies.push((id, value, "value"));
                     "ImageAtomic"
                 }

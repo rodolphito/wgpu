@@ -776,7 +776,7 @@ impl<W: Write> Writer<W> {
             Statement::ImageAtomic {
                 image,
                 coordinate,
-                array_index,
+                sample: _,
                 ref fun,
                 value,
             } => {
@@ -786,10 +786,7 @@ impl<W: Write> Writer<W> {
                 self.write_expr(module, image, func_ctx)?;
                 write!(self.out, ", ")?;
                 self.write_expr(module, coordinate, func_ctx)?;
-                if let Some(array_index_expr) = array_index {
-                    write!(self.out, ", ")?;
-                    self.write_expr(module, array_index_expr, func_ctx)?;
-                }
+                // We do not write sample because it is unsupported
                 write!(self.out, ", ")?;
                 self.write_expr(module, value, func_ctx)?;
                 writeln!(self.out, ");")?;

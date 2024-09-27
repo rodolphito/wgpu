@@ -2469,12 +2469,12 @@ impl<'a, W: Write> Writer<'a, W> {
             Statement::ImageAtomic {
                 image,
                 coordinate,
-                array_index,
+                sample,
                 fun,
                 value,
             } => {
                 write!(self.out, "{level}")?;
-                self.write_image_atomic(ctx, image, coordinate, array_index, fun, value)?
+                self.write_image_atomic(ctx, image, coordinate, sample, fun, value)?
             }
             Statement::RayQuery { .. } => unreachable!(),
             Statement::SubgroupBallot { result, predicate } => {
@@ -4102,7 +4102,7 @@ impl<'a, W: Write> Writer<'a, W> {
         ctx: &back::FunctionCtx,
         image: Handle<crate::Expression>,
         coordinate: Handle<crate::Expression>,
-        array_index: Option<Handle<crate::Expression>>,
+        _sample: Handle<crate::Expression>,
         fun: crate::AtomicFunction,
         value: Handle<crate::Expression>,
     ) -> Result<(), Error> {
@@ -4130,9 +4130,9 @@ impl<'a, W: Write> Writer<'a, W> {
         self.write_texture_coord(
             ctx,
             // Get the size of the coordinate vector
-            self.get_coordinate_vector_size(dim, array_index.is_some()),
+            self.get_coordinate_vector_size(dim, false),
             coordinate,
-            array_index,
+            None,
             tex_1d_hack,
         )?;
 

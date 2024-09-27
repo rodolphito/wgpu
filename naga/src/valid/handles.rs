@@ -539,13 +539,13 @@ impl super::Validator {
             crate::Statement::ImageAtomic {
                 image,
                 coordinate,
-                array_index,
+                sample,
                 fun: _,
                 value,
             } => {
                 validate_expr(image)?;
                 validate_expr(coordinate)?;
-                validate_expr_opt(array_index)?;
+                validate_expr(sample)?;
                 validate_expr(value)?;
                 Ok(())
             }

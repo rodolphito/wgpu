@@ -2212,7 +2212,7 @@ impl<'a, W: fmt::Write> super::Writer<'a, W> {
             crate::Statement::ImageAtomic {
                 image,
                 coordinate,
-                array_index,
+                sample: _,
                 fun,
                 value,
             } => {
@@ -2227,16 +2227,7 @@ impl<'a, W: fmt::Write> super::Writer<'a, W> {
                 self.write_expr(module, image, func_ctx)?;
 
                 write!(self.out, "[")?;
-                if let Some(index) = array_index {
-                    // Array index accepted only for texture_storage_2d_array, so we can safety use int3(coordinate, array_index) here
-                    write!(self.out, "int3(")?;
-                    self.write_expr(module, coordinate, func_ctx)?;
-                    write!(self.out, ", ")?;
-                    self.write_expr(module, index, func_ctx)?;
-                    write!(self.out, ")")?;
-                } else {
-                    self.write_expr(module, coordinate, func_ctx)?;
-                }
+                self.write_expr(module, coordinate, func_ctx)?;
                 write!(self.out, "],")?;
 
                 self.write_expr(module, value, func_ctx)?;

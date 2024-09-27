@@ -82,15 +82,13 @@ impl FunctionTracer<'_> {
                     St::ImageAtomic {
                         image,
                         coordinate,
-                        array_index,
+                        sample,
                         fun: _,
                         value,
                     } => {
                         self.expressions_used.insert(image);
                         self.expressions_used.insert(coordinate);
-                        if let Some(array_index) = array_index {
-                            self.expressions_used.insert(array_index);
-                        }
+                        self.expressions_used.insert(sample);
                         self.expressions_used.insert(value);
                     }
                     St::WorkGroupUniformLoad { pointer, result } => {
@@ -278,15 +276,13 @@ impl FunctionMap {
                     St::ImageAtomic {
                         ref mut image,
                         ref mut coordinate,
-                        ref mut array_index,
+                        ref mut sample,
                         fun: _,
                         ref mut value,
                     } => {
                         adjust(image);
                         adjust(coordinate);
-                        if let Some(ref mut array_index) = *array_index {
-                            adjust(array_index);
-                        }
+                        adjust(sample);
                         adjust(value);
                     }
                     St::WorkGroupUniformLoad {

@@ -1025,15 +1025,13 @@ impl FunctionInfo {
                 S::ImageAtomic {
                     image,
                     coordinate,
-                    array_index,
+                    sample,
                     fun: _,
                     value,
                 } => {
                     let _ = self.add_ref_impl(image, GlobalUse::WRITE);
-                    if let Some(expr) = array_index {
-                        let _ = self.add_ref(expr);
-                    }
                     let _ = self.add_ref(coordinate);
+                    let _ = self.add_ref(sample);
                     let _ = self.add_ref(value);
                     FunctionUniformity::new()
                 }

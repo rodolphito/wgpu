@@ -638,15 +638,13 @@ fn adjust_stmt(new_pos: &HandleVec<Expression, Handle<Expression>>, stmt: &mut S
         Statement::ImageAtomic {
             ref mut image,
             ref mut coordinate,
-            ref mut array_index,
+            ref mut sample,
             fun: _,
             ref mut value,
         } => {
             adjust(image);
             adjust(coordinate);
-            if let Some(e) = array_index.as_mut() {
-                adjust(e);
-            }
+            adjust(sample);
             adjust(value);
         }
         Statement::WorkGroupUniformLoad {

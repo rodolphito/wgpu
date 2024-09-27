@@ -2605,11 +2605,11 @@ impl<'w> BlockContext<'w> {
                 Statement::ImageAtomic {
                     image,
                     coordinate,
-                    array_index,
+                    sample,
                     fun,
                     value,
                 } => {
-                    self.write_image_atomic(image, coordinate, array_index, fun, value, &mut block)?
+                    self.write_image_atomic(image, coordinate, sample, fun, value, &mut block)?;
                 }
                 Statement::WorkGroupUniformLoad { pointer, result } => {
                     self.writer

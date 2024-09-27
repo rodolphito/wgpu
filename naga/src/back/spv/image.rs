@@ -229,104 +229,6 @@ impl Access for Store {
     fn out_of_bounds_value(&self, _ctx: &mut BlockContext<'_>) {}
 }
 
-/// Texel access information for a [`Store`] statement.
-///
-/// [`Store`]: crate::Statement::Store
-struct Atomic {
-    /// The id of the image being written to.
-    image_id: Word,
-
-    /// The kind of atomic operation to perform
-    fun: crate::AtomicFunction,
-
-    /// The value we're going to write to the texel.
-    value_id: Word,
-}
-
-struct TexelPointer {
-    /// The type id produced by the actual image access instruction.
-    type_id: Word,
-
-    /// The id of the image being accessed.
-    image_id: Word,
-}
-
-impl Access for TexelPointer {
-    type Output = Word;
-
-    /// Write an instruction to access a given texel of this image.
-    fn generate(
-        &self,
-        id_gen: &mut IdGenerator,
-        coordinates_id: Word,
-        level_id: Option<Word>,
-        sample_id: Option<Word>,
-        block: &mut Block,
-    ) -> Word {
-        let texel_id = id_gen.next();
-        let mut instruction = Instruction::image_texel_pointer(
-            self.type_id,
-            texel_id,
-            self.image_id,
-            coordinates_id,
-            sample_id.unwrap(),
-        );
-
-        match (level_id, sample_id) {
-            (None, None) => {}
-            (Some(level_id), None) => {
-                instruction.add_operand(spirv::ImageOperands::LOD.bits());
-                instruction.add_operand(level_id);
-            }
-            (None, Some(sample_id)) => {
-                instruction.add_operand(spirv::ImageOperands::SAMPLE.bits());
-                instruction.add_operand(sample_id);
-            }
-            // There's no such thing as a multi-sampled mipmap.
-            (Some(_), Some(_)) => unreachable!(),
-        }
-
-        block.body.push(instruction);
-
-        texel_id
-    }
-
-    fn result_type(&self) -> Word {
-        self.type_id
-    }
-
-    fn out_of_bounds_value(&self, ctx: &mut BlockContext<'_>) -> Word {
-        ctx.writer.get_constant_null(self.type_id)
-    }
-}
-
-impl Access for Atomic {
-    /// Stores don't generate any value.
-    type Output = ();
-
-    fn generate(
-        &self,
-        _id_gen: &mut IdGenerator,
-        coordinates_id: Word,
-        _level_id: Option<Word>,
-        _sample_id: Option<Word>,
-        block: &mut Block,
-    ) {
-        block.body.push(Instruction::image_atomic(
-            self.image_id,
-            coordinates_id,
-            self.fun,
-            self.value_id,
-        ));
-    }
-
-    /// Stores don't generate any value, so this just returns `()`.
-    fn result_type(&self) {}
-
-    /// Stores don't generate any value, so this just returns `()`.
-    fn out_of_bounds_value(&self, _ctx: &mut BlockContext<'_>) {}
-}
-
 impl<'w> BlockContext<'w> {
     /// Extend image coordinates with an array index, if necessary.
     ///
@@ -1291,43 +1193,50 @@ impl<'w> BlockContext<'w> {
         &mut self,
         image: Handle<crate::Expression>,
         coordinate: Handle<crate::Expression>,
-        array_index: Option<Handle<crate::Expression>>,
+        sample: Handle<crate::Expression>,
         fun: crate::AtomicFunction,
         value: Handle<crate::Expression>,
         block: &mut Block,
     ) -> Result<(), Error> {
-        let image_id = self.get_handle_id(image);
-        let coordinates = self.write_image_coordinates(coordinate, array_index, block)?;
-        let value_id = self.cached[value];
+        let pointer_type_id = self.get_expression_type_id(&crate::proc::TypeResolution::Value(
+            crate::TypeInner::ValuePointer {
+                space: crate::AddressSpace::Uniform,
+                size: None,
+                scalar: crate::Scalar {
+                    kind: crate::ScalarKind::Uint,
+                    width: 8,
+                },
+            },
+        ));
 
-        let write = Atomic {
+        let (semantics, scope) = crate::AddressSpace::Handle.to_spirv_semantics_and_scope();
+        let scope_constant_id = self.get_scope_constant(scope as u32);
+        let semantics_id = self.get_index_constant(semantics.bits());
+        let value_id = self.cached[value];
+        let sample_id = self.cached[sample];
+        let image_id = self.get_handle_id(image);
+        let coordinates = self.write_image_coordinates(coordinate, None, block)?;
+        let pointer_id = self.gen_id();
+        let result_type_id = self.get_expression_type_id(&self.fun_info[value].ty);
+        let id = self.gen_id();
+
+        block.body.push(Instruction::image_texel_pointer(
+            pointer_type_id,
+            pointer_id,
             image_id,
+            coordinates.value_id,
+            sample_id,
+        ));
+
+        block.body.push(Instruction::image_atomic(
+            result_type_id,
+            id,
+            pointer_id,
+            scope_constant_id,
+            semantics_id,
             fun,
             value_id,
-        };
-
-        match *self.fun_info[image].ty.inner_with(&self.ir_module.types) {
-            crate::TypeInner::Image {
-                class:
-                    crate::ImageClass::Storage {
-                        format: crate::StorageFormat::Bgra8Unorm,
-                        ..
-                    },
-                ..
-            } => self.writer.require_any(
-                "Bgra8Unorm storage write",
-                &[spirv::Capability::StorageImageWriteWithoutFormat],
-            )?,
-            _ => {}
-        }
-
-        write.generate(
-            &mut self.writer.id_gen,
-            coordinates.value_id,
-            None,
-            None,
-            block,
-        );
+        ));
 
         Ok(())
     }

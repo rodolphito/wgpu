@@ -2351,18 +2351,15 @@ impl<'source, 'temp> Lowerer<'source, 'temp> {
                             let mut args = ctx.prepare_args(arguments, 3, span);
 
                             let image = args.next()?;
-                            let image_span = ctx.ast_expressions.get_span(image);
                             let image = self.expression(image, ctx)?;
 
                             let coordinate = self.expression(args.next()?, ctx)?;
 
-                            let (_, arrayed) = ctx.image_data(image, image_span)?;
-                            let array_index = arrayed
-                                .then(|| {
-                                    args.min_args += 1;
-                                    self.expression(args.next()?, ctx)
-                                })
-                                .transpose()?;
+                            let ty = ctx
+                                .ensure_type_exists(crate::TypeInner::Scalar(crate::Scalar::I32));
+                            // We fib in a zero value for sample because it is not supported
+                            let sample =
+                                ctx.append_expression(crate::Expression::ZeroValue(ty), span)?;
 
                             let value = self.expression(args.next()?, ctx)?;
 
@@ -2375,7 +2372,7 @@ impl<'source, 'temp> Lowerer<'source, 'temp> {
                             let stmt = crate::Statement::ImageAtomic {
                                 image,
                                 coordinate,
-                                array_index,
+                                sample,
                                 fun: match function.name {
                                     "imageAtomicMin" => crate::AtomicFunction::Min,
                                     "imageAtomicMax" => crate::AtomicFunction::Max,

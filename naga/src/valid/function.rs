@@ -146,6 +146,10 @@ pub enum FunctionError {
     },
     #[error("Image store parameters are invalid")]
     InvalidImageStore(#[source] ExpressionError),
+    #[error("Image atomic parameters are invalid")]
+    InvalidImageAtomic(#[source] ExpressionError),
+    #[error("Image atomic parameters are invalid")]
+    InvalidAtomicValue(Handle<crate::Expression>),
     #[error("Call to {function:?} is invalid")]
     InvalidCall {
         function: Handle<crate::Function>,
@@ -1142,11 +1146,11 @@ impl super::Validator {
                 S::ImageAtomic {
                     image,
                     coordinate,
-                    array_index,
+                    sample: _,
                     fun: _,
                     value,
                 } => {
-                    //Note: this code uses a lot of `FunctionError::InvalidImageStore`,
+                    // Note: this code uses a lot of `FunctionError::InvalidImageAtomic`,
                     // and could probably be refactored.
                     let var = match *context.get_expression(image) {
                         crate::Expression::GlobalVariable(var_handle) => {
@@ -1160,7 +1164,7 @@ impl super::Validator {
                                     &context.global_vars[var_handle]
                                 }
                                 _ => {
-                                    return Err(FunctionError::InvalidImageStore(
+                                    return Err(FunctionError::InvalidImageAtomic(
                                         ExpressionError::ExpectedGlobalVariable,
                                     )
                                     .with_span_handle(image, context.expressions))
@@ -1168,7 +1172,7 @@ impl super::Validator {
                             }
                         }
                         _ => {
-                            return Err(FunctionError::InvalidImageStore(
+                            return Err(FunctionError::InvalidImageAtomic(
                                 ExpressionError::ExpectedGlobalVariable,
                             )
                             .with_span_handle(image, context.expressions))
@@ -1184,7 +1188,7 @@ impl super::Validator {
                     let value_ty = match *global_ty {
                         Ti::Image {
                             class,
-                            arrayed,
+                            arrayed: _,
                             dim,
                         } => {
                             match context
@@ -1193,7 +1197,7 @@ impl super::Validator {
                             {
                                 Some(coord_dim) if coord_dim == dim => {}
                                 _ => {
-                                    return Err(FunctionError::InvalidImageStore(
+                                    return Err(FunctionError::InvalidImageAtomic(
                                         ExpressionError::InvalidImageCoordinateType(
                                             dim, coordinate,
                                         ),
@@ -1201,26 +1205,6 @@ impl super::Validator {
                                     .with_span_handle(coordinate, context.expressions));
                                 }
                             };
-                            if arrayed != array_index.is_some() {
-                                return Err(FunctionError::InvalidImageStore(
-                                    ExpressionError::InvalidImageArrayIndex,
-                                )
-                                .with_span_handle(coordinate, context.expressions));
-                            }
-                            if let Some(expr) = array_index {
-                                match *context.resolve_type(expr, &self.valid_expression_set)? {
-                                    Ti::Scalar(crate::Scalar {
-                                        kind: crate::ScalarKind::Sint | crate::ScalarKind::Uint,
-                                        width: _,
-                                    }) => {}
-                                    _ => {
-                                        return Err(FunctionError::InvalidImageStore(
-                                            ExpressionError::InvalidImageArrayIndexType(expr),
-                                        )
-                                        .with_span_handle(expr, context.expressions));
-                                    }
-                                }
-                            }
                             match class {
                                 crate::ImageClass::Storage {
                                     format: crate::StorageFormat::R64Uint,
@@ -1237,7 +1221,7 @@ impl super::Validator {
                                     width: 4,
                                 }),
                                 _ => {
-                                    return Err(FunctionError::InvalidImageStore(
+                                    return Err(FunctionError::InvalidImageAtomic(
                                         ExpressionError::InvalidImageClass(class),
                                     )
                                     .with_span_handle(image, context.expressions));
@@ -1245,7 +1229,7 @@ impl super::Validator {
                             }
                         }
                         _ => {
-                            return Err(FunctionError::InvalidImageStore(
+                            return Err(FunctionError::InvalidImageAtomic(
                                 ExpressionError::ExpectedImageType(var.ty),
                             )
                             .with_span()
@@ -1255,7 +1239,7 @@ impl super::Validator {
                     };
 
                     if *context.resolve_type(value, &self.valid_expression_set)? != value_ty {
-                        return Err(FunctionError::InvalidStoreValue(value)
+                        return Err(FunctionError::InvalidAtomicValue(value)
                             .with_span_handle(value, context.expressions));
                     }
                 }

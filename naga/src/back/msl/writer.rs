@@ -3231,14 +3231,14 @@ impl<W: Write> Writer<W> {
                 crate::Statement::ImageAtomic {
                     image,
                     coordinate,
-                    array_index,
+                    sample,
                     fun,
                     value,
                 } => {
                     let address = TexelAddress {
                         coordinate,
-                        array_index,
-                        sample: None,
+                        array_index: None,
+                        sample: Some(sample),
                         level: None,
                     };
                     self.put_image_atomic(level, image, &address, fun, value, context)?

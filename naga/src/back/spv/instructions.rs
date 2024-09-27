@@ -719,8 +719,11 @@ impl super::Instruction {
     }
 
     pub(super) fn image_atomic(
-        image: Word,
-        coordinates: Word,
+        result_type_id: Word,
+        result_id: Word,
+        pointer: Word,
+        memory: Word,
+        memory_semantic: Word,
         fun: crate::AtomicFunction,
         value: Word,
     ) -> Self {
@@ -729,8 +732,11 @@ impl super::Instruction {
             crate::AtomicFunction::Min => Op::AtomicUMin,
             _ => unreachable!(),
         });
-        instruction.add_operand(image);
-        instruction.add_operand(coordinates);
+        instruction.add_operand(result_type_id);
+        instruction.add_operand(result_id);
+        instruction.add_operand(pointer);
+        instruction.add_operand(memory);
+        instruction.add_operand(memory_semantic);
         instruction.add_operand(value);
         instruction
     }
