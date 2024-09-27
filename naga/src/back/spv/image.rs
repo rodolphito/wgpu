@@ -1198,18 +1198,15 @@ impl<'w> BlockContext<'w> {
         value: Handle<crate::Expression>,
         block: &mut Block,
     ) -> Result<(), Error> {
-        let space = crate::AddressSpace::Handle;
-        let pointer_type_id = self.get_expression_type_id(&crate::proc::TypeResolution::Value(
-            crate::TypeInner::ValuePointer {
-                space,
-                size: None,
-                scalar: crate::Scalar {
-                    kind: crate::ScalarKind::Uint,
-                    width: 8,
-                },
+        let pointer_type_id = self.get_type_id(LookupType::Local(LocalType::Value {
+            vector_size: None,
+            scalar: crate::Scalar {
+                kind: crate::ScalarKind::Uint,
+                width: 8,
             },
-        ));
-
+            pointer_space: Some(spirv::StorageClass::Image),
+        }));
+        let space = crate::AddressSpace::Handle;
         let (semantics, scope) = space.to_spirv_semantics_and_scope();
         let scope_constant_id = self.get_scope_constant(scope as u32);
         let semantics_id = self.get_index_constant(semantics.bits());
