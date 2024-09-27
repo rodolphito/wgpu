@@ -1198,11 +1198,10 @@ impl<'w> BlockContext<'w> {
         value: Handle<crate::Expression>,
         block: &mut Block,
     ) -> Result<(), Error> {
+        let space = crate::AddressSpace::Handle;
         let pointer_type_id = self.get_expression_type_id(&crate::proc::TypeResolution::Value(
             crate::TypeInner::ValuePointer {
-                space: crate::AddressSpace::Storage {
-                    access: crate::StorageAccess::all(),
-                },
+                space,
                 size: None,
                 scalar: crate::Scalar {
                     kind: crate::ScalarKind::Uint,
@@ -1211,7 +1210,7 @@ impl<'w> BlockContext<'w> {
             },
         ));
 
-        let (semantics, scope) = crate::AddressSpace::Handle.to_spirv_semantics_and_scope();
+        let (semantics, scope) = space.to_spirv_semantics_and_scope();
         let scope_constant_id = self.get_scope_constant(scope as u32);
         let semantics_id = self.get_index_constant(semantics.bits());
         let value_id = self.cached[value];

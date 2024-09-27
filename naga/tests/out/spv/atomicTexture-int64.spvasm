@@ -30,7 +30,7 @@ OpDecorate %11 BuiltIn LocalInvocationId
 %19 = OpConstantNull  %6
 %20 = OpTypeInt 64 0
 %21 = OpConstant  %20  1
-%23 = OpTypePointer StorageBuffer %20
+%23 = OpTypePointer UniformConstant %20
 %24 = OpConstant  %6  4
 %25 = OpConstant  %4  0
 %28 = OpConstant  %4  2
