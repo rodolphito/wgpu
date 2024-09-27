@@ -2223,12 +2223,11 @@ impl<'a, W: fmt::Write> super::Writer<'a, W> {
                     &TypeInner::Scalar(Scalar { width: 8, .. }) => "64",
                     _ => "",
                 };
-                write!(self.out, "Interlocked{fun_str}{width}(")?;
                 self.write_expr(module, image, func_ctx)?;
+                write!(self.out, ".Interlocked{fun_str}{width}(")?;
 
-                write!(self.out, "[")?;
                 self.write_expr(module, coordinate, func_ctx)?;
-                write!(self.out, "],")?;
+                write!(self.out, ",")?;
 
                 self.write_expr(module, value, func_ctx)?;
                 writeln!(self.out, ");")?;

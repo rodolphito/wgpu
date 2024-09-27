@@ -1207,7 +1207,7 @@ impl<W: Write> Writer<W> {
         }
         write!(self.out, "], ")?;
         self.put_expression(value, &context.expression, true)?;
-        writeln!(self.out, ", memory_order_relaxed);")?;
+        writeln!(self.out, ", metal::memory_order_relaxed);")?;
 
         Ok(())
     }

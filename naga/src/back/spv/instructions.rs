@@ -720,10 +720,10 @@ impl super::Instruction {
 
     pub(super) fn image_atomic(
         result_type_id: Word,
-        result_id: Word,
+        id: Word,
         pointer: Word,
-        memory: Word,
-        memory_semantic: Word,
+        scope_id: Word,
+        semantics_id: Word,
         fun: crate::AtomicFunction,
         value: Word,
     ) -> Self {
@@ -733,10 +733,10 @@ impl super::Instruction {
             _ => unreachable!(),
         });
         instruction.add_operand(result_type_id);
-        instruction.add_operand(result_id);
+        instruction.add_operand(id);
         instruction.add_operand(pointer);
-        instruction.add_operand(memory);
-        instruction.add_operand(memory_semantic);
+        instruction.add_operand(scope_id);
+        instruction.add_operand(semantics_id);
         instruction.add_operand(value);
         instruction
     }
