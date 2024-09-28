@@ -224,7 +224,7 @@ impl LocalImageType {
                 image_format: spirv::ImageFormat::Unknown,
             },
             crate::ImageClass::Storage { format, access: _ } => LocalImageType {
-                sampled_type: crate::Scalar::from(format),
+                sampled_type: format.into(),
                 dim,
                 flags: make_flags(false, ImageTypeFlags::empty()),
                 image_format: format.into(),

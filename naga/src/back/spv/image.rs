@@ -1198,19 +1198,36 @@ impl<'w> BlockContext<'w> {
         value: Handle<crate::Expression>,
         block: &mut Block,
     ) -> Result<(), Error> {
-        let image_id = self.get_handle_id(image);
-        let result_type_id = self.get_expression_type_id(&self.fun_info[value].ty);
+        let crate::TypeInner::Image {
+            dim,
+            class,
+            arrayed,
+        } = *self.fun_info[image].ty.inner_with(&self.ir_module.types)
+        else {
+            return Err(Error::Validation("Invalid image type"));
+        };
+        let local_type = LocalType::Image(super::LocalImageType::from_inner(dim, arrayed, class));
+        let image_id = self.get_type_id(LookupType::Local(local_type));
+        let image_ptr_id = self.gen_id();
+        block.body.push(Instruction::type_pointer(
+            image_ptr_id,
+            spirv::StorageClass::UniformConstant,
+            image_id,
+        ));
+        let image_var_id = self.gen_id();
+        block.body.push(Instruction::variable(
+            image_ptr_id,
+            image_var_id,
+            spirv::StorageClass::UniformConstant,
+            None,
+        ));
 
-        let scalar = match *self.fun_info[image].ty.inner_with(&self.ir_module.types) {
-            crate::TypeInner::Image {
-                class: crate::ImageClass::Storage { format, .. },
-                ..
-            } => format.into(),
-            _ => return Err(Error::Validation("Invalid image type")),
+        let crate::ImageClass::Storage { format, .. } = class else {
+            return Err(Error::Validation("Invalid image class"));
         };
         let pointer_type_id = self.get_type_id(LookupType::Local(LocalType::Value {
             vector_size: None,
-            scalar,
+            scalar: format.into(),
             pointer_space: Some(spirv::StorageClass::Image),
         }));
         let pointer_id = self.gen_id();
@@ -1219,7 +1236,7 @@ impl<'w> BlockContext<'w> {
         block.body.push(Instruction::image_texel_pointer(
             pointer_type_id,
             pointer_id,
-            image_id,
+            image_var_id,
             coordinates.value_id,
             sample_id,
         ));
@@ -1229,6 +1246,7 @@ impl<'w> BlockContext<'w> {
             crate::AtomicFunction::Min => spirv::Op::AtomicUMin,
             _ => return Err(Error::Validation("Invalid image atomic operation")),
         };
+        let result_type_id = self.get_expression_type_id(&self.fun_info[value].ty);
         let id = self.gen_id();
         let space = crate::AddressSpace::Handle;
         let (semantics, scope) = space.to_spirv_semantics_and_scope();
