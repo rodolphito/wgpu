@@ -1198,12 +1198,16 @@ impl<'w> BlockContext<'w> {
         value: Handle<crate::Expression>,
         block: &mut Block,
     ) -> Result<(), Error> {
+        let scalar = match *self.fun_info[image].ty.inner_with(&self.ir_module.types) {
+            crate::TypeInner::Image {
+                class: crate::ImageClass::Storage { format, .. },
+                ..
+            } => format.into(),
+            _ => return Err(Error::Validation("Invalid image type")),
+        };
         let pointer_type_id = self.get_type_id(LookupType::Local(LocalType::Value {
             vector_size: None,
-            scalar: crate::Scalar {
-                kind: crate::ScalarKind::Uint,
-                width: 8,
-            },
+            scalar,
             pointer_space: Some(spirv::StorageClass::Image),
         }));
         let space = crate::AddressSpace::Handle;
@@ -1217,6 +1221,11 @@ impl<'w> BlockContext<'w> {
         let pointer_id = self.gen_id();
         let result_type_id = self.get_expression_type_id(&self.fun_info[value].ty);
         let id = self.gen_id();
+        let op = match fun {
+            crate::AtomicFunction::Max => spirv::Op::AtomicUMax,
+            crate::AtomicFunction::Min => spirv::Op::AtomicUMin,
+            _ => return Err(Error::Validation("Invalid image atomic operation")),
+        };
 
         block.body.push(Instruction::image_texel_pointer(
             pointer_type_id,
@@ -1227,12 +1236,12 @@ impl<'w> BlockContext<'w> {
         ));
 
         block.body.push(Instruction::image_atomic(
+            op,
             result_type_id,
             id,
             pointer_id,
             scope_constant_id,
             semantics_id,
-            fun,
             value_id,
         ));
 

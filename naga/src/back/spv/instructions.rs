@@ -719,19 +719,15 @@ impl super::Instruction {
     }
 
     pub(super) fn image_atomic(
+        op: Op,
         result_type_id: Word,
         id: Word,
         pointer: Word,
         scope_id: Word,
         semantics_id: Word,
-        fun: crate::AtomicFunction,
         value: Word,
     ) -> Self {
-        let mut instruction = Self::new(match fun {
-            crate::AtomicFunction::Max => Op::AtomicUMax,
-            crate::AtomicFunction::Min => Op::AtomicUMin,
-            _ => unreachable!(),
-        });
+        let mut instruction = Self::new(op);
         instruction.add_operand(result_type_id);
         instruction.add_operand(id);
         instruction.add_operand(pointer);
