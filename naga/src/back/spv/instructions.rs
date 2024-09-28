@@ -710,8 +710,8 @@ impl super::Instruction {
         sample: Word,
     ) -> Self {
         let mut instruction = Self::new(Op::ImageTexelPointer);
-        instruction.add_operand(result_type_id);
-        instruction.add_operand(id);
+        instruction.set_type(result_type_id);
+        instruction.set_result(id);
         instruction.add_operand(image);
         instruction.add_operand(coordinates);
         instruction.add_operand(sample);
@@ -728,8 +728,8 @@ impl super::Instruction {
         value: Word,
     ) -> Self {
         let mut instruction = Self::new(op);
-        instruction.add_operand(result_type_id);
-        instruction.add_operand(id);
+        instruction.set_type(result_type_id);
+        instruction.set_result(id);
         instruction.add_operand(pointer);
         instruction.add_operand(scope_id);
         instruction.add_operand(semantics_id);
