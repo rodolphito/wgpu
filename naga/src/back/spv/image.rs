@@ -1198,6 +1198,14 @@ impl<'w> BlockContext<'w> {
         value: Handle<crate::Expression>,
         block: &mut Block,
     ) -> Result<(), Error> {
+        let image_id = self.gen_id();
+        let result_type_id = self.get_expression_type_id(&self.fun_info[value].ty);
+        block.body.push(Instruction::type_pointer(
+            image_id,
+            spirv::StorageClass::Image,
+            result_type_id,
+        ));
+
         let scalar = match *self.fun_info[image].ty.inner_with(&self.ir_module.types) {
             crate::TypeInner::Image {
                 class: crate::ImageClass::Storage { format, .. },
@@ -1210,23 +1218,9 @@ impl<'w> BlockContext<'w> {
             scalar,
             pointer_space: Some(spirv::StorageClass::Image),
         }));
-        let space = crate::AddressSpace::Handle;
-        let (semantics, scope) = space.to_spirv_semantics_and_scope();
-        let scope_constant_id = self.get_scope_constant(scope as u32);
-        let semantics_id = self.get_index_constant(semantics.bits());
-        let value_id = self.cached[value];
-        let sample_id = self.cached[sample];
-        let image_id = self.get_handle_id(image);
-        let coordinates = self.write_image_coordinates(coordinate, None, block)?;
         let pointer_id = self.gen_id();
-        let result_type_id = self.get_expression_type_id(&self.fun_info[value].ty);
-        let id = self.gen_id();
-        let op = match fun {
-            crate::AtomicFunction::Max => spirv::Op::AtomicUMax,
-            crate::AtomicFunction::Min => spirv::Op::AtomicUMin,
-            _ => return Err(Error::Validation("Invalid image atomic operation")),
-        };
-
+        let coordinates = self.write_image_coordinates(coordinate, None, block)?;
+        let sample_id = self.cached[sample];
         block.body.push(Instruction::image_texel_pointer(
             pointer_type_id,
             pointer_id,
@@ -1234,6 +1228,18 @@ impl<'w> BlockContext<'w> {
             coordinates.value_id,
             sample_id,
         ));
+
+        let op = match fun {
+            crate::AtomicFunction::Max => spirv::Op::AtomicUMax,
+            crate::AtomicFunction::Min => spirv::Op::AtomicUMin,
+            _ => return Err(Error::Validation("Invalid image atomic operation")),
+        };
+        let id = self.gen_id();
+        let space = crate::AddressSpace::Handle;
+        let (semantics, scope) = space.to_spirv_semantics_and_scope();
+        let scope_constant_id = self.get_scope_constant(scope as u32);
+        let semantics_id = self.get_index_constant(semantics.bits());
+        let value_id = self.cached[value];
 
         block.body.push(Instruction::image_atomic(
             op,
