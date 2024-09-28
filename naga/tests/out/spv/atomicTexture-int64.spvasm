@@ -43,11 +43,11 @@ OpDecorate %12 BuiltIn LocalInvocationId
 %17 = OpLoad  %3  %9
 OpBranch %22
 %22 = OpLabel
-%24 = OpVariable  %23  UniformConstant
+%24 = OpVariable  %23  Function
 %26 = OpImageTexelPointer  %25  %24 %19 %20
 %27 = OpAtomicUMax  %4  %26 %28 %29 %21
 OpControlBarrier %30 %30 %31
-%33 = OpVariable  %32  UniformConstant
+%33 = OpVariable  %32  Function
 %34 = OpImageTexelPointer  %25  %33 %19 %20
 %35 = OpAtomicUMin  %4  %34 %28 %29 %21
 OpReturn

@@ -1218,7 +1218,7 @@ impl<'w> BlockContext<'w> {
         block.body.push(Instruction::variable(
             image_ptr_id,
             image_var_id,
-            spirv::StorageClass::UniformConstant,
+            spirv::StorageClass::Function,
             None,
         ));
 
