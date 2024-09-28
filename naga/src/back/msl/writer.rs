@@ -1207,7 +1207,7 @@ impl<W: Write> Writer<W> {
         self.put_cast_to_uint_scalar_or_vector(address.coordinate, &context.expression)?;
         write!(self.out, ", ")?;
         self.put_expression(value, &context.expression, true)?;
-        writeln!(self.out, ", {NAMESPACE}::memory_order_relaxed);")?;
+        writeln!(self.out, ");")?;
 
         Ok(())
     }
