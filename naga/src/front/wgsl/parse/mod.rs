@@ -1700,7 +1700,7 @@ impl Parser {
                         let expr = self.general_expression(lexer, ctx)?;
                         lexer.expect(Token::Separator(';'))?;
 
-                        ast::StatementKind::Ignore(expr)
+                        ast::StatementKind::Phony(expr)
                     }
                     "let" => {
                         let _ = lexer.next();
