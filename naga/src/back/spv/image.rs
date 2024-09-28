@@ -1211,7 +1211,7 @@ impl<'w> BlockContext<'w> {
         let image_ptr_id = self.gen_id();
         block.body.push(Instruction::type_pointer(
             image_ptr_id,
-            spirv::StorageClass::UniformConstant,
+            spirv::StorageClass::Function,
             image_id,
         ));
         let image_var_id = self.gen_id();

@@ -35,8 +35,8 @@ OpDecorate %12 BuiltIn LocalInvocationId
 %29 = OpConstant  %6  0
 %30 = OpConstant  %6  2
 %31 = OpConstant  %6  264
-%23 = OpTypePointer UniformConstant %3
-%32 = OpTypePointer UniformConstant %3
+%23 = OpTypePointer Function %3
+%32 = OpTypePointer Function %3
 %15 = OpFunction  %2  None %16
 %11 = OpLabel
 %14 = OpLoad  %5  %12
