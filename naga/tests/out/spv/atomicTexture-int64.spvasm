@@ -5,6 +5,7 @@
 OpCapability Shader
 OpCapability Int64ImageEXT
 OpCapability Int64
+OpCapability Int64Atomics
 OpExtension "SPV_EXT_shader_image_int64"
 %1 = OpExtInstImport "GLSL.std.450"
 OpMemoryModel Logical GLSL450

@@ -1225,11 +1225,16 @@ impl<'w> BlockContext<'w> {
         let crate::ImageClass::Storage { format, .. } = class else {
             return Err(Error::Validation("Invalid image class"));
         };
+        let scalar = format.into();
         let pointer_type_id = self.get_type_id(LookupType::Local(LocalType::Value {
             vector_size: None,
-            scalar: format.into(),
+            scalar,
             pointer_space: Some(spirv::StorageClass::Image),
         }));
+        if scalar.width == 8 {
+            self.writer
+                .require_any("64 bit image atomics", &[spirv::Capability::Int64Atomics])?;
+        }
         let pointer_id = self.gen_id();
         let coordinates = self.write_image_coordinates(coordinate, None, block)?;
         let sample_id = self.cached[sample];
