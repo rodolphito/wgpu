@@ -1198,13 +1198,8 @@ impl<'w> BlockContext<'w> {
         value: Handle<crate::Expression>,
         block: &mut Block,
     ) -> Result<(), Error> {
-        let image_id = self.gen_id();
+        let image_id = self.get_handle_id(image);
         let result_type_id = self.get_expression_type_id(&self.fun_info[value].ty);
-        block.body.push(Instruction::type_pointer(
-            image_id,
-            spirv::StorageClass::Image,
-            result_type_id,
-        ));
 
         let scalar = match *self.fun_info[image].ty.inner_with(&self.ir_module.types) {
             crate::TypeInner::Image {
