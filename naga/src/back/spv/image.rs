@@ -1198,30 +1198,17 @@ impl<'w> BlockContext<'w> {
         value: Handle<crate::Expression>,
         block: &mut Block,
     ) -> Result<(), Error> {
-        let crate::TypeInner::Image {
-            dim,
-            class,
-            arrayed,
-        } = *self.fun_info[image].ty.inner_with(&self.ir_module.types)
+        let image_id = match self.ir_function.expressions[image] {
+            crate::Expression::GlobalVariable(handle) => {
+                self.writer.global_variables[handle].var_id
+            }
+            _ => return Err(Error::Validation("Unexpected image type")),
+        };
+        let crate::TypeInner::Image { class, .. } =
+            *self.fun_info[image].ty.inner_with(&self.ir_module.types)
         else {
             return Err(Error::Validation("Invalid image type"));
         };
-        let local_type = LocalType::Image(super::LocalImageType::from_inner(dim, arrayed, class));
-        let image_id = self.get_type_id(LookupType::Local(local_type));
-        let image_ptr_id = self.gen_id();
-        block.body.push(Instruction::type_pointer(
-            image_ptr_id,
-            spirv::StorageClass::Function,
-            image_id,
-        ));
-        let image_var_id = self.gen_id();
-        block.body.push(Instruction::variable(
-            image_ptr_id,
-            image_var_id,
-            spirv::StorageClass::Function,
-            None,
-        ));
-
         let crate::ImageClass::Storage { format, .. } = class else {
             return Err(Error::Validation("Invalid image class"));
         };
@@ -1241,7 +1228,7 @@ impl<'w> BlockContext<'w> {
         block.body.push(Instruction::image_texel_pointer(
             pointer_type_id,
             pointer_id,
-            image_var_id,
+            image_id,
             coordinates.value_id,
             sample_id,
         ));
