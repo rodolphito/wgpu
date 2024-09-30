@@ -1205,9 +1205,9 @@ impl<W: Write> Writer<W> {
         write!(self.out, ".atomic_{}(", fun.to_msl_64_bit()?)?;
         // coordinates in IR are int, but Metal expects uint
         self.put_cast_to_uint_scalar_or_vector(address.coordinate, &context.expression)?;
-        write!(self.out, ", ")?;
+        write!(self.out, ",  metal::ulong4(")?;
         self.put_expression(value, &context.expression, true)?;
-        writeln!(self.out, ");")?;
+        writeln!(self.out, ", 0uL, 0uL, 0uL));")?;
 
         Ok(())
     }
