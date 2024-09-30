@@ -11,7 +11,6 @@ OpExtension "SPV_EXT_shader_image_int64"
 OpMemoryModel Logical GLSL450
 OpEntryPoint GLCompute %15 "cs_main" %12
 OpExecutionMode %15 LocalSize 2 1 1
-OpDecorate %9 NonReadable
 OpDecorate %9 DescriptorSet 0
 OpDecorate %9 Binding 0
 OpDecorate %12 BuiltIn LocalInvocationId
