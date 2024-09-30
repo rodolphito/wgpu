@@ -1,6 +1,8 @@
 // language: metal3.1
 #include <metal_stdlib>
 #include <simd/simd.h>
+#pragma message( __HAVE_TEXTURE_RELAXED_ORDER_ATOMIC__ )
+#pragma message( __METAL_VERSION__ )
 
 using metal::uint;
 
