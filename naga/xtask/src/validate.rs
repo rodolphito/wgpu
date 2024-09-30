@@ -260,7 +260,7 @@ fn validate_metal(path: &Path, xcrun: &str) -> anyhow::Result<()> {
     let file = open_file(path)?;
     EasyCommand::new(xcrun, |cmd| {
         cmd.stdin(Stdio::from(file))
-            .args(["-sdk", "macosx", "metal", "-mmacosx-version-min=14.0"])
+            .args(["-sdk", "macosx", "metal", "-mmacosx-version-min=10.11"])
             .arg(std_arg)
             .args(["-x", "metal", "-", "-o", "/dev/null"])
     })
