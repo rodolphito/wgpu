@@ -1037,6 +1037,11 @@ impl PhysicalDeviceProperties {
             extensions.push(khr::shader_atomic_int64::NAME);
         }
 
+        // Require `VK_EXT_shader_image_atomic_int64` if the associated feature was requested
+        if requested_features.intersects(wgt::Features::TEXTURE_INT64_ATOMIC) {
+            extensions.push(ext::shader_image_atomic_int64::NAME);
+        }
+
         // Require VK_GOOGLE_display_timing if the associated feature was requested
         if requested_features.contains(wgt::Features::VULKAN_GOOGLE_DISPLAY_TIMING) {
             extensions.push(google::display_timing::NAME);
