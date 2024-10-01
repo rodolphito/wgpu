@@ -157,7 +157,7 @@ impl PhysicalDeviceFeatures {
         if let Some(ref mut feature) = self.ray_query {
             info = info.push_next(feature);
         }
-        if let Some(ref mut feature) = self.shader_image_atomic_int64 {
+        if let Some(ref mut feature) = self.shader_atomic_int64 {
             info = info.push_next(feature);
         }
         if let Some(ref mut feature) = self.subgroup_size_control {
