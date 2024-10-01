@@ -109,6 +109,9 @@ pub struct PhysicalDeviceFeatures {
     /// Features provided by `VK_KHR_shader_atomic_int64`, promoted to Vulkan 1.2.
     shader_atomic_int64: Option<vk::PhysicalDeviceShaderAtomicInt64Features<'static>>,
 
+    /// Features provided by `VK_EXT_shader_image_atomic_int64`, promoted to Vulkan 1.2.
+    shader_image_atomic_int64: Option<vk::PhysicalDeviceShaderImageAtomicInt64FeaturesEXT<'static>>,
+
     /// Features provided by `VK_EXT_subgroup_size_control`, promoted to Vulkan 1.3.
     subgroup_size_control: Option<vk::PhysicalDeviceSubgroupSizeControlFeatures<'static>>,
 }
@@ -155,6 +158,9 @@ impl PhysicalDeviceFeatures {
             info = info.push_next(feature);
         }
         if let Some(ref mut feature) = self.shader_atomic_int64 {
+            info = info.push_next(feature);
+        }
+        if let Some(ref mut feature) = self.shader_image_atomic_int64 {
             info = info.push_next(feature);
         }
         if let Some(ref mut feature) = self.subgroup_size_control {
@@ -438,6 +444,17 @@ impl PhysicalDeviceFeatures {
             } else {
                 None
             },
+            shader_image_atomic_int64: if device_api_version >= vk::API_VERSION_1_2
+                || enabled_extensions.contains(&ext::shader_image_atomic_int64::NAME)
+            {
+                let needed = requested_features.intersects(wgt::Features::TEXTURE_INT64_ATOMIC);
+                Some(
+                    vk::PhysicalDeviceShaderImageAtomicInt64FeaturesEXT::default()
+                        .shader_image_int64_atomics(needed),
+                )
+            } else {
+                None
+            },
             subgroup_size_control: if device_api_version >= vk::API_VERSION_1_3
                 || enabled_extensions.contains(&ext::subgroup_size_control::NAME)
             {
@@ -587,6 +604,16 @@ impl PhysicalDeviceFeatures {
                 F::SHADER_INT64_ATOMIC_ALL_OPS | F::SHADER_INT64_ATOMIC_MIN_MAX,
                 shader_atomic_int64.shader_buffer_int64_atomics != 0
                     && shader_atomic_int64.shader_shared_int64_atomics != 0,
+            );
+        }
+
+        if let Some(ref shader_image_atomic_int64) = self.shader_image_atomic_int64 {
+            features.set(
+                F::TEXTURE_INT64_ATOMIC,
+                shader_image_atomic_int64
+                    .shader_image_int64_atomics(true)
+                    .shader_image_int64_atomics
+                    != 0,
             );
         }
 
@@ -1290,6 +1317,17 @@ impl super::InstanceShared {
                 let next = features
                     .shader_atomic_int64
                     .insert(vk::PhysicalDeviceShaderAtomicInt64Features::default());
+                features2 = features2.push_next(next);
+            }
+
+            // `VK_EXT_shader_image_atomic_int64` is promoted to 1.2, but has no
+            // changes, so we can keep using the extension unconditionally.
+            if capabilities.device_api_version >= vk::API_VERSION_1_2
+                || capabilities.supports_extension(ext::shader_image_atomic_int64::NAME)
+            {
+                let next = features
+                    .shader_image_atomic_int64
+                    .insert(vk::PhysicalDeviceShaderImageAtomicInt64FeaturesEXT::default());
                 features2 = features2.push_next(next);
             }
 

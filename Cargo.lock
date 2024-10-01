@@ -1814,7 +1814,8 @@ dependencies = [
 [[package]]
 name = "metal"
 version = "0.29.0"
-source = "git+https://github.com/atlv24/metal-rs.git?branch=shader-atomic#8cb7f03ee34ce7a5f098cf509bd3b860ab53c9c8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7ecfd3296f8c56b7c1f6fbac3c71cefa9d78ce009850c45000015f206dc7fa21"
 dependencies = [
  "bitflags 2.6.0",
  "block",

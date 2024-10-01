@@ -77,7 +77,7 @@ By @bradwerth [#6216](https://github.com/gfx-rs/wgpu/pull/6216).
 
 ### New Features
 
-64 bit integer atomic support in shaders. By @atlv24 in [#5383](https://github.com/gfx-rs/wgpu/pull/5383)
+64 bit image atomic support in shaders. By @atlv24 in [#5537](https://github.com/gfx-rs/wgpu/pull/5537)
 
 #### Naga
 

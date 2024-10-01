@@ -148,7 +148,7 @@ pub enum FunctionError {
     InvalidImageStore(#[source] ExpressionError),
     #[error("Image atomic parameters are invalid")]
     InvalidImageAtomic(#[source] ExpressionError),
-    #[error("Image atomic parameters are invalid")]
+    #[error("Image atomic value is invalid")]
     InvalidAtomicValue(Handle<crate::Expression>),
     #[error("Call to {function:?} is invalid")]
     InvalidCall {
@@ -1202,21 +1202,28 @@ impl super::Validator {
                                     .with_span_handle(coordinate, context.expressions));
                                 }
                             };
+
                             match class {
-                                crate::ImageClass::Storage {
-                                    format: crate::StorageFormat::R64Uint,
-                                    ..
-                                } => crate::TypeInner::Scalar(crate::Scalar {
-                                    kind: crate::ScalarKind::Uint,
-                                    width: 8,
-                                }),
-                                crate::ImageClass::Storage {
-                                    format: crate::StorageFormat::R32Uint,
-                                    ..
-                                } => crate::TypeInner::Scalar(crate::Scalar {
-                                    kind: crate::ScalarKind::Uint,
-                                    width: 4,
-                                }),
+                                crate::ImageClass::Storage { format, access } => {
+                                    if access
+                                        != crate::StorageAccess::LOAD | crate::StorageAccess::STORE
+                                    {
+                                        return Err(FunctionError::InvalidImageAtomic(
+                                            ExpressionError::InvalidImageStorageAccess(access),
+                                        )
+                                        .with_span_handle(image, context.expressions));
+                                    }
+                                    match format {
+                                        crate::StorageFormat::R64Uint => {}
+                                        _ => {
+                                            return Err(FunctionError::InvalidImageAtomic(
+                                                ExpressionError::InvalidImageFormat(format),
+                                            )
+                                            .with_span_handle(image, context.expressions));
+                                        }
+                                    }
+                                    crate::TypeInner::Scalar(format.into())
+                                }
                                 _ => {
                                     return Err(FunctionError::InvalidImageAtomic(
                                         ExpressionError::InvalidImageClass(class),

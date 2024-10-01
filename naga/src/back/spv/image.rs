@@ -1198,10 +1198,8 @@ impl<'w> BlockContext<'w> {
         value: Handle<crate::Expression>,
         block: &mut Block,
     ) -> Result<(), Error> {
-        let image_id = match self.ir_function.expressions[image] {
-            crate::Expression::GlobalVariable(handle) => {
-                self.writer.global_variables[handle].var_id
-            }
+        let image_id = match self.ir_function.originating_global(image) {
+            Some(handle) => self.writer.global_variables[handle].var_id,
             _ => return Err(Error::Validation("Unexpected image type")),
         };
         let crate::TypeInner::Image { class, .. } =
