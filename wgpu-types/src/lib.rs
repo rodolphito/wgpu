@@ -5516,6 +5516,11 @@ bitflags::bitflags! {
     #[repr(transparent)]
     #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
     pub struct TextureUsages: u32 {
+        //
+        // ---- Start numbering at 1 << 0 ----
+        //
+        // WebGPU features:
+        //
         /// Allows a texture to be the source in a [`CommandEncoder::copy_texture_to_buffer`] or
         /// [`CommandEncoder::copy_texture_to_texture`] operation.
         const COPY_SRC = 1 << 0;
@@ -5528,6 +5533,14 @@ bitflags::bitflags! {
         const STORAGE_BINDING = 1 << 3;
         /// Allows a texture to be an output attachment of a render pass.
         const RENDER_ATTACHMENT = 1 << 4;
+
+        //
+        // ---- Restart Numbering for Native Features ---
+        //
+        // Native Features:
+        //
+        /// Allows a texture to be used with image atomics. Requires [`Features::TEXTURE_INT64_ATOMIC`]
+        const SHADER_ATOMIC = 1 << 16;
     }
 }
 

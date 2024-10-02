@@ -2162,6 +2162,10 @@ impl crate::Adapter for super::Adapter {
             Tfc::COPY_DST,
             features.intersects(vk::FormatFeatureFlags::TRANSFER_DST),
         );
+        flags.set(
+            Tfc::SHADER_ATOMIC,
+            features.intersects(vk::FormatFeatureFlags::STORAGE_IMAGE_ATOMIC),
+        );
         // Vulkan is very permissive about MSAA
         flags.set(Tfc::MULTISAMPLE_RESOLVE, !format.is_compressed());
 

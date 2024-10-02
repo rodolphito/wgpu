@@ -109,6 +109,12 @@ impl crate::Adapter for super::Adapter {
             ],
         );
 
+        let image_atomic = if pc.int64_image_atomics {
+            Tfc::SHADER_ATOMIC
+        } else {
+            Tfc::empty()
+        };
+
         // Metal defined pixel format capabilities
         let all_caps = Tfc::SAMPLED_LINEAR
             | Tfc::STORAGE
@@ -183,7 +189,7 @@ impl crate::Adapter for super::Adapter {
                 flags.set(Tfc::STORAGE, pc.format_rg11b10_all);
                 flags
             }
-            Tf::R64Uint => Tfc::COLOR_ATTACHMENT | Tfc::STORAGE,
+            Tf::R64Uint => Tfc::COLOR_ATTACHMENT | Tfc::STORAGE | image_atomic,
             Tf::Rg32Uint | Tf::Rg32Sint => Tfc::COLOR_ATTACHMENT | Tfc::STORAGE | msaa_count,
             Tf::Rg32Float => {
                 if pc.format_rg32float_all {
@@ -829,6 +835,7 @@ impl super::PrivateCapabilities {
                 && ((device.supports_family(MTLGPUFamily::Apple8)
                     && device.supports_family(MTLGPUFamily::Mac2))
                     || device.supports_family(MTLGPUFamily::Apple9)),
+            int64_image_atomics: family_check && device.supports_family(MTLGPUFamily::Apple6),
         }
     }
 
@@ -908,6 +915,10 @@ impl super::PrivateCapabilities {
         features.set(
             F::SHADER_INT64_ATOMIC_MIN_MAX,
             self.int64_atomics && self.msl_version >= MTLLanguageVersion::V2_4,
+        );
+        features.set(
+            F::TEXTURE_INT64_ATOMIC,
+            self.int64_image_atomics && self.msl_version >= MTLLanguageVersion::V3_1,
         );
 
         features.set(

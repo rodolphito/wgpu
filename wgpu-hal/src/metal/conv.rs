@@ -29,7 +29,7 @@ pub fn map_texture_usage(
 
     mtl_usage.set(
         metal::MTLTextureUsage::ShaderAtomic,
-        format == wgt::TextureFormat::R64Uint,
+        usage.intersects(Tu::SHADER_ATOMIC),
     );
 
     mtl_usage

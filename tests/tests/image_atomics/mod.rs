@@ -72,7 +72,7 @@ static IMAGE_ATOMICS: GpuTestConfiguration = GpuTestConfiguration::new()
             dimension: wgpu::TextureDimension::D2,
             size,
             format: wgpu::TextureFormat::R64Uint,
-            usage: wgpu::TextureUsages::STORAGE_BINDING,
+            usage: wgpu::TextureUsages::STORAGE_BINDING | wgpu::TextureUsages::SHADER_ATOMIC,
             mip_level_count: 1,
             sample_count: 1,
             view_formats: &[],
