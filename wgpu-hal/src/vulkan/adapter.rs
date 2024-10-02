@@ -160,6 +160,9 @@ impl PhysicalDeviceFeatures {
         if let Some(ref mut feature) = self.shader_atomic_int64 {
             info = info.push_next(feature);
         }
+        if let Some(ref mut feature) = self.shader_image_atomic_int64 {
+            info = info.push_next(feature);
+        }
         if let Some(ref mut feature) = self.subgroup_size_control {
             info = info.push_next(feature);
         }
@@ -1824,6 +1827,10 @@ impl super::Adapter {
                     | wgt::Features::SHADER_INT64_ATOMIC_MIN_MAX,
             ) {
                 capabilities.push(spv::Capability::Int64Atomics);
+            }
+
+            if features.intersects(wgt::Features::TEXTURE_INT64_ATOMIC) {
+                capabilities.push(spv::Capability::Int64ImageEXT);
             }
 
             let mut flags = spv::WriterFlags::empty();
