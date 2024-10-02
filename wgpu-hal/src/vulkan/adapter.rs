@@ -109,7 +109,7 @@ pub struct PhysicalDeviceFeatures {
     /// Features provided by `VK_KHR_shader_atomic_int64`, promoted to Vulkan 1.2.
     shader_atomic_int64: Option<vk::PhysicalDeviceShaderAtomicInt64Features<'static>>,
 
-    /// Features provided by `VK_EXT_shader_image_atomic_int64`, promoted to Vulkan 1.2.
+    /// Features provided by `VK_EXT_shader_image_atomic_int64`
     shader_image_atomic_int64: Option<vk::PhysicalDeviceShaderImageAtomicInt64FeaturesEXT<'static>>,
 
     /// Features provided by `VK_EXT_subgroup_size_control`, promoted to Vulkan 1.3.
@@ -160,6 +160,12 @@ impl PhysicalDeviceFeatures {
         if let Some(ref mut feature) = self.shader_atomic_int64 {
             info = info.push_next(feature);
         }
+        // Validation Error: Validation Error: [ VUID-VkDeviceCreateInfo-pNext-pNext ] Object 0: handle = 0x7f26080522c0,
+        // type = VK_OBJECT_TYPE_INSTANCE; | MessageID = 0x901f59ec | vkCreateDevice(): pCreateInfo->pNext<VkPhysicalDeviceShaderImageAtomicInt64FeaturesEXT>
+        // includes a pointer to a VkPhysicalDeviceShaderImageAtomicInt64FeaturesEXT, but when creating VkDevice, the parent extension
+        // (VK_EXT_shader_image_atomic_int64) was not included in ppEnabledExtensionNames. The Vulkan spec states: Each pNext member of any structure
+        // (including this one) in the pNext chain must be either NULL or a pointer to a valid struct for extending VkDeviceCreateInfo
+        // (https://vulkan.lunarg.com/doc/view/1.3.290.0/linux/1.3-extensions/vkspec.html#VUID-VkDeviceCreateInfo-pNext-pNext)
         if let Some(ref mut feature) = self.shader_image_atomic_int64 {
             info = info.push_next(feature);
         }
@@ -444,8 +450,8 @@ impl PhysicalDeviceFeatures {
             } else {
                 None
             },
-            shader_image_atomic_int64: if device_api_version >= vk::API_VERSION_1_2
-                || enabled_extensions.contains(&ext::shader_image_atomic_int64::NAME)
+            shader_image_atomic_int64: if enabled_extensions
+                .contains(&ext::shader_image_atomic_int64::NAME)
             {
                 let needed = requested_features.intersects(wgt::Features::TEXTURE_INT64_ATOMIC);
                 Some(
@@ -1327,9 +1333,7 @@ impl super::InstanceShared {
 
             // `VK_EXT_shader_image_atomic_int64` is promoted to 1.2, but has no
             // changes, so we can keep using the extension unconditionally.
-            if capabilities.device_api_version >= vk::API_VERSION_1_2
-                || capabilities.supports_extension(ext::shader_image_atomic_int64::NAME)
-            {
+            if capabilities.supports_extension(ext::shader_image_atomic_int64::NAME) {
                 let next = features
                     .shader_image_atomic_int64
                     .insert(vk::PhysicalDeviceShaderImageAtomicInt64FeaturesEXT::default());
