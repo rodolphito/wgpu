@@ -28,9 +28,7 @@ static IMAGE_ATOMICS: GpuTestConfiguration = GpuTestConfiguration::new()
             height: 256,
             depth_or_array_layers: 1,
         };
-        let mut bind_group_layout_entries = Vec::with_capacity(1);
-
-        bind_group_layout_entries.push(wgpu::BindGroupLayoutEntry {
+        let bind_group_layout_entries = vec![wgpu::BindGroupLayoutEntry {
             binding: 0,
             visibility: wgpu::ShaderStages::COMPUTE,
             ty: wgpu::BindingType::StorageTexture {
@@ -39,7 +37,7 @@ static IMAGE_ATOMICS: GpuTestConfiguration = GpuTestConfiguration::new()
                 view_dimension: wgpu::TextureViewDimension::D2,
             },
             count: None,
-        });
+        }];
 
         let bind_group_layout =
             ctx.device
