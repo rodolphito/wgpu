@@ -1325,8 +1325,6 @@ impl super::InstanceShared {
                 features2 = features2.push_next(next);
             }
 
-            // `VK_EXT_shader_image_atomic_int64` is promoted to 1.2, but has no
-            // changes, so we can keep using the extension unconditionally.
             if capabilities.supports_extension(ext::shader_image_atomic_int64::NAME) {
                 let next = features
                     .shader_image_atomic_int64
