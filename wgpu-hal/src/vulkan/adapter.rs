@@ -160,12 +160,6 @@ impl PhysicalDeviceFeatures {
         if let Some(ref mut feature) = self.shader_atomic_int64 {
             info = info.push_next(feature);
         }
-        // Validation Error: Validation Error: [ VUID-VkDeviceCreateInfo-pNext-pNext ] Object 0: handle = 0x7f26080522c0,
-        // type = VK_OBJECT_TYPE_INSTANCE; | MessageID = 0x901f59ec | vkCreateDevice(): pCreateInfo->pNext<VkPhysicalDeviceShaderImageAtomicInt64FeaturesEXT>
-        // includes a pointer to a VkPhysicalDeviceShaderImageAtomicInt64FeaturesEXT, but when creating VkDevice, the parent extension
-        // (VK_EXT_shader_image_atomic_int64) was not included in ppEnabledExtensionNames. The Vulkan spec states: Each pNext member of any structure
-        // (including this one) in the pNext chain must be either NULL or a pointer to a valid struct for extending VkDeviceCreateInfo
-        // (https://vulkan.lunarg.com/doc/view/1.3.290.0/linux/1.3-extensions/vkspec.html#VUID-VkDeviceCreateInfo-pNext-pNext)
         if let Some(ref mut feature) = self.shader_image_atomic_int64 {
             info = info.push_next(feature);
         }
