@@ -2498,7 +2498,7 @@ impl Device {
                         if !view
                             .format_features
                             .flags
-                            .contains(wgt::TextureFormatFeatureFlags::STORAGE_READ_WRITE)
+                            .contains(wgt::TextureFormatFeatureFlags::STORAGE_WRITE)
                         {
                             return Err(Error::StorageReadNotSupported(view.desc.format));
                         }
@@ -2508,7 +2508,7 @@ impl Device {
                         if !view
                             .format_features
                             .flags
-                            .contains(wgt::TextureFormatFeatureFlags::STORAGE_READ_WRITE)
+                            .contains(wgt::TextureFormatFeatureFlags::STORAGE_WRITE)
                         {
                             return Err(Error::StorageReadNotSupported(view.desc.format));
                         }
