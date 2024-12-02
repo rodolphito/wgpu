@@ -1547,7 +1547,7 @@ bitflags!(
         const STORAGE_READ_ONLY = 1 << 16;
         /// Format can be used as storage with write-only access.
         const STORAGE_WRITE_ONLY = 1 << 3;
-        /// Format can be used as storage with read and read/write access.
+        /// Format can be used as storage with both read and write access.
         const STORAGE_READ_WRITE = 1 << 4;
         /// Format can be used as storage with atomics.
         const STORAGE_ATOMIC = 1 << 5;
