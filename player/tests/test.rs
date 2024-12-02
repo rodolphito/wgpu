@@ -72,10 +72,11 @@ impl Test<'_> {
             wgt::Backend::Gl => "Gl",
             _ => unreachable!(),
         };
-        let string = read_to_string(path.clone())
+        let string = read_to_string(&path)
             .unwrap()
             .replace("Empty", backend_name);
-        ron::de::from_str(&string).expect(format!("{path:?}").as_str())
+        ron::de::from_str(&string)
+            .unwrap_or_else(|e| panic!("{path:?}:{} {}", e.position.line, e.code))
     }
 
     fn run(
