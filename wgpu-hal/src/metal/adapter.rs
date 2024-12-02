@@ -360,7 +360,6 @@ impl crate::Adapter for super::Adapter {
             usage: crate::TextureUses::COLOR_TARGET
                 | crate::TextureUses::COPY_SRC
                 | crate::TextureUses::COPY_DST
-                //| crate::TextureUses::STORAGE_READ_ONLY
                 | crate::TextureUses::STORAGE_READ_WRITE,
         })
     }
