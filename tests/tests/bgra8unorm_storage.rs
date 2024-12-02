@@ -21,10 +21,7 @@ static BGRA8_UNORM_STORAGE: GpuTestConfiguration = GpuTestConfiguration::new()
                 max_storage_textures_per_shader_stage: 1,
                 ..Default::default()
             })
-            .features(
-                wgpu::Features::BGRA8UNORM_STORAGE
-                    | wgpu::Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES,
-            ),
+            .features(wgpu::Features::BGRA8UNORM_STORAGE),
     )
     .run_async(|ctx| async move {
         let device = &ctx.device;

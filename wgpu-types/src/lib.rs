@@ -3533,6 +3533,10 @@ impl TextureFormat {
 
         flags.set(TextureFormatFeatureFlags::FILTERABLE, is_filterable);
         flags.set(TextureFormatFeatureFlags::BLENDABLE, is_blendable);
+        flags.set(
+            TextureFormatFeatureFlags::STORAGE_WRITE_ONLY,
+            allowed_usages.contains(TextureUsages::STORAGE_BINDING),
+        );
 
         TextureFormatFeatures {
             allowed_usages,
