@@ -2381,8 +2381,14 @@ bitflags::bitflags! {
         /// to a render pass for an automatic driver-implemented resolve.
         const MULTISAMPLE_RESOLVE = 1 << 5;
         /// When used as a STORAGE texture, then a texture with this format can be bound with
-        /// [`StorageTextureAccess::ReadOnly`] or [`StorageTextureAccess::ReadWrite`].
-        const STORAGE_WRITE = 1 << 6;
+        /// [`StorageTextureAccess::ReadOnly`].
+        const STORAGE_READ_ONLY = 1 << 8;
+        /// When used as a STORAGE texture, then a texture with this format can be bound with
+        /// [`StorageTextureAccess::WriteOnly`].
+        const STORAGE_WRITE_ONLY = 1 << 6;
+        /// When used as a STORAGE texture, then a texture with this format can be bound with
+        /// any [`StorageTextureAccess`].
+        const STORAGE_READ_WRITE = 1 << 9;
         /// If not present, the texture can't be blended into the render target.
         const BLENDABLE = 1 << 7;
     }
