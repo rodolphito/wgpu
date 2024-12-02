@@ -1,6 +1,7 @@
 use crate::auxil::dxgi::result::HResult;
+use std::ffi::CStr;
 use std::path::PathBuf;
-use std::{error::Error, ffi::CStr};
+use thiserror::Error;
 use windows::{
     core::{Interface, PCSTR, PCWSTR},
     Win32::Graphics::Direct3D::{Dxc, Fxc},
@@ -97,19 +98,7 @@ struct DxcLib {
 }
 
 impl DxcLib {
-    fn new_dynamic(
-        lib_path: Option<PathBuf>,
-        lib_name: &'static str,
-    ) -> Result<Self, libloading::Error> {
-        let lib_path = if let Some(lib_path) = lib_path {
-            if lib_path.is_file() {
-                lib_path
-            } else {
-                lib_path.join(lib_name)
-            }
-        } else {
-            PathBuf::from(lib_name)
-        };
+    fn new_dynamic(lib_path: PathBuf) -> Result<Self, libloading::Error> {
         unsafe { crate::dx12::DynLib::new(lib_path).map(|lib| Self { lib }) }
     }
 
@@ -157,49 +146,39 @@ pub(super) struct DxcContainer {
     _dxil: Option<DxcLib>,
 }
 
-pub(super) fn get_dynamic_dxc_container(
-    dxc_path: Option<PathBuf>,
-    dxil_path: Option<PathBuf>,
-) -> Result<Option<DxcContainer>, crate::DeviceError> {
-    let dxc = match DxcLib::new_dynamic(dxc_path, "dxcompiler.dll") {
-        Ok(dxc) => dxc,
-        Err(e) => {
-            log::warn!(
-                "Failed to load dxcompiler.dll. Defaulting to FXC instead: {}: {:?}",
-                e,
-                e.source()
-            );
-            return Ok(None);
-        }
-    };
+#[derive(Debug, Error)]
+pub(super) enum GetDynamicDXCContainerError {
+    #[error(transparent)]
+    Device(#[from] crate::DeviceError),
+    #[error("Failed to load {0}: {1}")]
+    FailedToLoad(&'static str, libloading::Error),
+}
 
-    let dxil = match DxcLib::new_dynamic(dxil_path, "dxil.dll") {
-        Ok(dxil) => dxil,
-        Err(e) => {
-            log::warn!(
-                "Failed to load dxil.dll. Defaulting to FXC instead: {}: {:?}",
-                e,
-                e.source()
-            );
-            return Ok(None);
-        }
-    };
+pub(super) fn get_dynamic_dxc_container(
+    dxc_path: PathBuf,
+    dxil_path: PathBuf,
+) -> Result<DxcContainer, GetDynamicDXCContainerError> {
+    let dxc = DxcLib::new_dynamic(dxc_path)
+        .map_err(|e| GetDynamicDXCContainerError::FailedToLoad("dxcompiler.dll", e))?;
+
+    let dxil = DxcLib::new_dynamic(dxil_path)
+        .map_err(|e| GetDynamicDXCContainerError::FailedToLoad("dxil.dll", e))?;
 
     let compiler = dxc.create_instance::<Dxc::IDxcCompiler3>()?;
     let utils = dxc.create_instance::<Dxc::IDxcUtils>()?;
     let validator = dxil.create_instance::<Dxc::IDxcValidator>()?;
 
-    Ok(Some(DxcContainer {
+    Ok(DxcContainer {
         compiler,
         utils,
         validator: Some(validator),
         _dxc: Some(dxc),
         _dxil: Some(dxil),
-    }))
+    })
 }
 
 /// Creates a [`DxcContainer`] that delegates to the statically-linked version of DXC.
-pub(super) fn get_static_dxc_container() -> Result<Option<DxcContainer>, crate::DeviceError> {
+pub(super) fn get_static_dxc_container() -> Result<DxcContainer, crate::DeviceError> {
     #[cfg(feature = "static-dxc")]
     {
         unsafe {
@@ -218,13 +197,13 @@ pub(super) fn get_static_dxc_container() -> Result<Option<DxcContainer>, crate::
                 ))
             })?;
 
-            Ok(Some(DxcContainer {
+            Ok(DxcContainer {
                 compiler,
                 utils,
                 validator: None,
                 _dxc: None,
                 _dxil: None,
-            }))
+            })
         }
     }
     #[cfg(not(feature = "static-dxc"))]
