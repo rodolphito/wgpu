@@ -496,9 +496,7 @@ impl Device {
             self.require_downlevel_flags(wgt::DownlevelFlags::UNRESTRICTED_INDEX_BUFFER)?;
         }
 
-        if desc.usage.is_empty()
-            || desc.usage | wgt::BufferUsages::all() != wgt::BufferUsages::all()
-        {
+        if desc.usage.is_empty() || desc.usage.bits() & !wgt::BufferUsages::all().bits() != 0 {
             return Err(resource::CreateBufferError::InvalidUsage(desc.usage));
         }
 
@@ -732,9 +730,7 @@ impl Device {
 
         self.check_is_valid()?;
 
-        if desc.usage.is_empty()
-            || desc.usage | wgt::TextureUsages::all() != wgt::TextureUsages::all()
-        {
+        if desc.usage.is_empty() || desc.usage.bits() & !wgt::TextureUsages::all().bits() != 0 {
             return Err(CreateTextureError::InvalidUsage(desc.usage));
         }
 
@@ -1806,7 +1802,7 @@ impl Device {
                     })?;
             }
 
-            if entry.visibility | wgt::ShaderStages::all() != wgt::ShaderStages::all() {
+            if entry.visibility.bits() & !wgt::ShaderStages::all().bits() != 0 {
                 return Err(
                     binding_model::CreateBindGroupLayoutError::InvalidVisibility(entry.visibility),
                 );
@@ -2971,7 +2967,7 @@ impl Device {
             if let Some(cs) = cs.as_ref() {
                 target_specified = true;
                 let error = 'error: {
-                    if cs.write_mask | wgt::ColorWrites::all() != wgt::ColorWrites::all() {
+                    if cs.write_mask.bits() & !wgt::ColorWrites::all().bits() != 0 {
                         break 'error Some(pipeline::ColorStateError::InvalidWriteMask(
                             cs.write_mask,
                         ));
