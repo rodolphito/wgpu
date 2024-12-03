@@ -153,7 +153,6 @@ impl Drop for Device {
         let zero_buffer = unsafe { ManuallyDrop::take(&mut self.zero_buffer) };
         // SAFETY: We are in the Drop impl and we don't use self.fence anymore after this point.
         let fence = unsafe { ManuallyDrop::take(&mut self.fence.write()) };
-        self.command_allocator.dispose(self.raw.as_ref());
         #[cfg(feature = "indirect-validation")]
         self.indirect_validation
             .take()
@@ -3553,9 +3552,7 @@ impl Device {
                 .map_err(|e| self.handle_hal_error(e))?;
             drop(fence);
             if let Some(queue) = self.get_queue() {
-                let closures = queue
-                    .lock_life()
-                    .triage_submissions(submission_index, &self.command_allocator);
+                let closures = queue.lock_life().triage_submissions(submission_index);
                 assert!(
                     closures.is_empty(),
                     "wait_for_submit is not expected to work with closures"
