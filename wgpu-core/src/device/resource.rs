@@ -4,9 +4,8 @@ use crate::{
     binding_model::{self, BindGroup, BindGroupLayout, BindGroupLayoutEntryError},
     command, conv,
     device::{
-        bgl, create_validator, life::WaitIdleError, map_buffer, AttachmentData,
-        DeviceLostInvocation, HostMap, MissingDownlevelFlags, MissingFeatures, RenderPassContext,
-        CLEANUP_WAIT_MS,
+        bgl, life::WaitIdleError, map_buffer, AttachmentData, DeviceLostInvocation, HostMap,
+        MissingDownlevelFlags, MissingFeatures, RenderPassContext, CLEANUP_WAIT_MS,
     },
     hal_label,
     init_tracker::{
@@ -1517,7 +1516,7 @@ impl Device {
                 None
             };
 
-        let info = create_validator(
+        let info = hal::create_validator(
             self.features,
             self.downlevel.flags,
             naga::valid::ValidationFlags::all(),

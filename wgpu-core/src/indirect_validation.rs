@@ -103,7 +103,7 @@ impl IndirectValidation {
                 inner: Box::new(inner),
             })
         })?;
-        let info = crate::device::create_validator(
+        let info = hal::create_validator(
             wgt::Features::PUSH_CONSTANTS,
             wgt::DownlevelFlags::empty(),
             naga::valid::ValidationFlags::all(),
