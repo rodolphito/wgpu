@@ -255,7 +255,7 @@ impl TrackerIndexAllocators {
 pub(crate) struct PendingTransition<S: ResourceUses> {
     pub id: u32,
     pub selector: S::Selector,
-    pub usage: ops::Range<S>,
+    pub usage: hal::StateTransition<S>,
 }
 
 pub(crate) type PendingTransitionList = Vec<PendingTransition<hal::TextureUses>>;

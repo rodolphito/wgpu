@@ -946,7 +946,10 @@ fn dispatch_indirect(
         unsafe {
             state.raw_encoder.transition_buffers(&[hal::BufferBarrier {
                 buffer: params.dst_buffer,
-                usage: hal::BufferUses::INDIRECT..hal::BufferUses::STORAGE_READ_WRITE,
+                usage: hal::StateTransition {
+                    start: hal::BufferUses::INDIRECT,
+                    end: hal::BufferUses::STORAGE_READ_WRITE,
+                },
             }]);
         }
 
@@ -990,7 +993,10 @@ fn dispatch_indirect(
         unsafe {
             state.raw_encoder.transition_buffers(&[hal::BufferBarrier {
                 buffer: params.dst_buffer,
-                usage: hal::BufferUses::STORAGE_READ_WRITE..hal::BufferUses::INDIRECT,
+                usage: hal::StateTransition {
+                    start: hal::BufferUses::STORAGE_READ_WRITE,
+                    end: hal::BufferUses::INDIRECT,
+                },
             }]);
         }
 
