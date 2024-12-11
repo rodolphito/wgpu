@@ -2253,8 +2253,8 @@ pub struct Rect<T> {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct StateTransition<T> {
-    pub start: T,
-    pub end: T,
+    pub from: T,
+    pub to: T,
 }
 
 #[derive(Debug, Clone)]

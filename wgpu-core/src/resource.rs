@@ -637,15 +637,15 @@ impl Buffer {
                     let transition_src = hal::BufferBarrier {
                         buffer: staging_buffer.raw(),
                         usage: hal::StateTransition {
-                            start: hal::BufferUses::MAP_WRITE,
-                            end: hal::BufferUses::COPY_SRC,
+                            from: hal::BufferUses::MAP_WRITE,
+                            to: hal::BufferUses::COPY_SRC,
                         },
                     };
                     let transition_dst = hal::BufferBarrier::<dyn hal::DynBuffer> {
                         buffer: raw_buf,
                         usage: hal::StateTransition {
-                            start: hal::BufferUses::empty(),
-                            end: hal::BufferUses::COPY_SRC,
+                            from: hal::BufferUses::empty(),
+                            to: hal::BufferUses::COPY_SRC,
                         },
                     };
                     let mut pending_writes = queue.pending_writes.lock();

@@ -75,8 +75,8 @@ impl Queue {
                 .transition_buffers(&[hal::BufferBarrier {
                     buffer: zero_buffer,
                     usage: hal::StateTransition {
-                        start: hal::BufferUses::empty(),
-                        end: hal::BufferUses::COPY_DST,
+                        from: hal::BufferUses::empty(),
+                        to: hal::BufferUses::COPY_DST,
                     },
                 }]);
             pending_writes
@@ -87,8 +87,8 @@ impl Queue {
                 .transition_buffers(&[hal::BufferBarrier {
                     buffer: zero_buffer,
                     usage: hal::StateTransition {
-                        start: hal::BufferUses::COPY_DST,
-                        end: hal::BufferUses::COPY_SRC,
+                        from: hal::BufferUses::COPY_DST,
+                        to: hal::BufferUses::COPY_SRC,
                     },
                 }]);
         }
@@ -635,8 +635,8 @@ impl Queue {
         let barriers = iter::once(hal::BufferBarrier {
             buffer: staging_buffer.raw(),
             usage: hal::StateTransition {
-                start: hal::BufferUses::MAP_WRITE,
-                end: hal::BufferUses::COPY_SRC,
+                from: hal::BufferUses::MAP_WRITE,
+                to: hal::BufferUses::COPY_SRC,
             },
         })
         .chain(transition.map(|pending| pending.into_hal(&buffer, &snatch_guard)))
@@ -857,8 +857,8 @@ impl Queue {
             let buffer_barrier = hal::BufferBarrier {
                 buffer: staging_buffer.raw(),
                 usage: hal::StateTransition {
-                    start: hal::BufferUses::MAP_WRITE,
-                    end: hal::BufferUses::COPY_SRC,
+                    from: hal::BufferUses::MAP_WRITE,
+                    to: hal::BufferUses::COPY_SRC,
                 },
             };
 

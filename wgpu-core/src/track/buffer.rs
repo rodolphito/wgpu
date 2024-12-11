@@ -754,8 +754,8 @@ unsafe fn barrier(
         id: index as _,
         selector: (),
         usage: hal::StateTransition {
-            start: current_state,
-            end: new_state,
+            from: current_state,
+            to: new_state,
         },
     });
 }

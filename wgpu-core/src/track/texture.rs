@@ -1305,8 +1305,8 @@ unsafe fn barrier(
                 id: index as _,
                 selector: texture_selector.clone(),
                 usage: hal::StateTransition {
-                    start: current_simple,
-                    end: new_simple,
+                    from: current_simple,
+                    to: new_simple,
                 },
             });
         }
@@ -1324,8 +1324,8 @@ unsafe fn barrier(
                     id: index as _,
                     selector,
                     usage: hal::StateTransition {
-                        start: current_simple,
-                        end: new_state,
+                        from: current_simple,
+                        to: new_state,
                     },
                 });
             }
@@ -1350,8 +1350,8 @@ unsafe fn barrier(
                             layers: layers.clone(),
                         },
                         usage: hal::StateTransition {
-                            start: current_layer_state,
-                            end: new_simple,
+                            from: current_layer_state,
+                            to: new_simple,
                         },
                     });
                 }
@@ -1382,8 +1382,8 @@ unsafe fn barrier(
                                 layers,
                             },
                             usage: hal::StateTransition {
-                                start: *current_layer_state,
-                                end: new_state,
+                                from: *current_layer_state,
+                                to: new_state,
                             },
                         });
                     }
