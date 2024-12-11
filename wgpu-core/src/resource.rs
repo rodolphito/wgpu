@@ -645,7 +645,7 @@ impl Buffer {
                         buffer: raw_buf,
                         usage: hal::StateTransition {
                             from: hal::BufferUses::empty(),
-                            to: hal::BufferUses::COPY_SRC,
+                            to: hal::BufferUses::COPY_DST,
                         },
                     };
                     let mut pending_writes = queue.pending_writes.lock();
