@@ -383,6 +383,11 @@ impl super::Adapter {
         );
 
         features.set(
+            wgt::Features::TEXTURE_ATOMIC,
+            shader_model >= naga::back::hlsl::ShaderModel::V5_0,
+        );
+
+        features.set(
             wgt::Features::SUBGROUP,
             shader_model >= naga::back::hlsl::ShaderModel::V6_0
                 && hr.is_ok()
@@ -676,6 +681,12 @@ impl crate::Adapter for super::Adapter {
             data_srv_uav
                 .Support2
                 .contains(Direct3D12::D3D12_FORMAT_SUPPORT2_UAV_TYPED_LOAD),
+        );
+        caps.set(
+            Tfc::STORAGE_ATOMIC,
+            data_srv_uav
+                .Support2
+                .contains(Direct3D12::D3D12_FORMAT_SUPPORT2_UAV_ATOMIC_UNSIGNED_MIN_OR_MAX),
         );
         caps.set(
             Tfc::STORAGE_WRITE_ONLY,

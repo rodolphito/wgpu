@@ -708,6 +708,7 @@ impl crate::Device for super::Device {
                                 wgt::StorageTextureAccess::ReadOnly => false,
                                 wgt::StorageTextureAccess::WriteOnly => true,
                                 wgt::StorageTextureAccess::ReadWrite => true,
+                                wgt::StorageTextureAccess::Atomic => true,
                             };
                         }
                         wgt::BindingType::AccelerationStructure => unimplemented!(),

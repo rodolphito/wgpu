@@ -228,7 +228,7 @@ impl ParsingContext<'_> {
                         }
                         TokenValue::Buffer => {
                             StorageQualifier::AddressSpace(AddressSpace::Storage {
-                                access: crate::StorageAccess::all(),
+                                access: crate::StorageAccess::LOAD | crate::StorageAccess::STORE,
                             })
                         }
                         _ => unreachable!(),
@@ -277,14 +277,6 @@ impl ParsingContext<'_> {
                     let storage_access = qualifiers
                         .storage_access
                         .get_or_insert((crate::StorageAccess::all(), Span::default()));
-                    if !storage_access.0.contains(!access) {
-                        frontend.errors.push(Error {
-                            kind: ErrorKind::SemanticError(
-                                "The same memory qualifier can only be used once".into(),
-                            ),
-                            meta: token.meta,
-                        })
-                    }
 
                     storage_access.0 &= access;
                     storage_access.1.subsume(token.meta);

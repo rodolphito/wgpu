@@ -27,6 +27,11 @@ pub fn map_texture_usage(
         format.is_combined_depth_stencil_format(),
     );
 
+    mtl_usage.set(
+        metal::MTLTextureUsage::ShaderAtomic,
+        usage.intersects(Tu::STORAGE_ATOMIC),
+    );
+
     mtl_usage
 }
 

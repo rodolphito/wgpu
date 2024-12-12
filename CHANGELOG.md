@@ -105,6 +105,8 @@ By @ErichDonGubler in [#6456](https://github.com/gfx-rs/wgpu/pull/6456), [#6148]
 
 ### New Features
 
+Image atomic support in shaders. By @atlv24 in [#6706](https://github.com/gfx-rs/wgpu/pull/6706)
+
 #### Naga
 
 - Clean up tests for atomic operations support in SPIR-V frontend. By @schell in [#6692](https://github.com/gfx-rs/wgpu/pull/6692)

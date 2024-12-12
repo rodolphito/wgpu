@@ -143,6 +143,8 @@ bitflags::bitflags! {
         const SHADER_INT64_ATOMIC_MIN_MAX = 0x80000;
         /// Support for all atomic operations on 64-bit integers.
         const SHADER_INT64_ATOMIC_ALL_OPS = 0x100000;
+        /// Support for atomic operations on images.
+        const TEXTURE_ATOMIC = 0x200000;
     }
 }
 

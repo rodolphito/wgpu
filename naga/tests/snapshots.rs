@@ -789,6 +789,10 @@ fn convert_wgsl() {
             Targets::SPIRV | Targets::METAL | Targets::HLSL | Targets::WGSL,
         ),
         (
+            "atomicTexture",
+            Targets::SPIRV | Targets::METAL | Targets::HLSL | Targets::WGSL,
+        ),
+        (
             "atomicCompareExchange-int64",
             Targets::SPIRV | Targets::WGSL,
         ),

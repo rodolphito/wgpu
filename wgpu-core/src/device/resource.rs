@@ -1760,6 +1760,17 @@ impl Device {
                         _ => (),
                     }
                     match access {
+                        wgt::StorageTextureAccess::Atomic
+                            if !self.features.contains(
+                                wgt::Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES
+                                    | wgt::Features::TEXTURE_ATOMIC,
+                            ) =>
+                        {
+                            return Err(binding_model::CreateBindGroupLayoutError::Entry {
+                                binding: entry.binding,
+                                error: BindGroupLayoutEntryError::StorageTextureAtomic,
+                            });
+                        }
                         wgt::StorageTextureAccess::ReadOnly
                         | wgt::StorageTextureAccess::ReadWrite
                             if !self.features.contains(
@@ -1788,6 +1799,12 @@ impl Device {
                             wgt::StorageTextureAccess::ReadWrite => {
                                 required_features |=
                                     wgt::Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES;
+                                WritableStorage::Yes
+                            }
+                            wgt::StorageTextureAccess::Atomic => {
+                                required_features |=
+                                    wgt::Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES
+                                        | wgt::Features::TEXTURE_ATOMIC;
                                 WritableStorage::Yes
                             }
                         },
@@ -2522,6 +2539,17 @@ impl Device {
                         }
 
                         hal::TextureUses::STORAGE_READ_WRITE
+                    }
+                    wgt::StorageTextureAccess::Atomic => {
+                        if !view
+                            .format_features
+                            .flags
+                            .contains(wgt::TextureFormatFeatureFlags::STORAGE_ATOMIC)
+                        {
+                            return Err(Error::StorageAtomicNotSupported(view.desc.format));
+                        }
+
+                        hal::TextureUses::STORAGE_ATOMIC
                     }
                 };
                 Ok((wgt::TextureUsages::STORAGE_BINDING, internal_use))
