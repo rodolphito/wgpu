@@ -1761,10 +1761,7 @@ impl Device {
                     }
                     match access {
                         wgt::StorageTextureAccess::Atomic
-                            if !self.features.contains(
-                                wgt::Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES
-                                    | wgt::Features::TEXTURE_ATOMIC,
-                            ) =>
+                            if !self.features.contains(wgt::Features::TEXTURE_ATOMIC) =>
                         {
                             return Err(binding_model::CreateBindGroupLayoutError::Entry {
                                 binding: entry.binding,
@@ -1802,9 +1799,7 @@ impl Device {
                                 WritableStorage::Yes
                             }
                             wgt::StorageTextureAccess::Atomic => {
-                                required_features |=
-                                    wgt::Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES
-                                        | wgt::Features::TEXTURE_ATOMIC;
+                                required_features |= wgt::Features::TEXTURE_ATOMIC;
                                 WritableStorage::Yes
                             }
                         },

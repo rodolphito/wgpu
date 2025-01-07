@@ -1,7 +1,9 @@
 //! Tests for image atomics.
 
 use wgpu::ShaderModuleDescriptor;
-use wgpu_test::{gpu_test, GpuTestConfiguration, TestParameters, TestingContext};
+use wgpu_test::{
+    gpu_test, image::ReadbackBuffers, GpuTestConfiguration, TestParameters, TestingContext,
+};
 
 #[gpu_test]
 static IMAGE_32_ATOMICS: GpuTestConfiguration = GpuTestConfiguration::new()
@@ -16,10 +18,7 @@ static IMAGE_32_ATOMICS: GpuTestConfiguration = GpuTestConfiguration::new()
                 max_compute_workgroups_per_dimension: wgt::COPY_BYTES_PER_ROW_ALIGNMENT,
                 ..wgt::Limits::downlevel_webgl2_defaults()
             })
-            .features(
-                wgpu::Features::TEXTURE_ATOMIC
-                    | wgpu::Features::TEXTURE_ADAPTER_SPECIFIC_FORMAT_FEATURES,
-            ),
+            .features(wgpu::Features::TEXTURE_ATOMIC),
     )
     .run_async(|ctx| async move {
         test_format(
@@ -41,7 +40,7 @@ async fn test_format(
         height: wgt::COPY_BYTES_PER_ROW_ALIGNMENT,
         depth_or_array_layers: 1,
     };
-    let bind_group_layout_entries = vec![wgpu::BindGroupLayoutEntry {
+    let bind_group_layout_entry = wgpu::BindGroupLayoutEntry {
         binding: 0,
         visibility: wgpu::ShaderStages::COMPUTE,
         ty: wgpu::BindingType::StorageTexture {
@@ -50,13 +49,13 @@ async fn test_format(
             view_dimension: wgpu::TextureViewDimension::D2,
         },
         count: None,
-    }];
+    };
 
     let bind_group_layout = ctx
         .device
         .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: None,
-            entries: &bind_group_layout_entries,
+            entries: &[bind_group_layout_entry],
         });
 
     let pipeline_layout = ctx
@@ -115,54 +114,21 @@ async fn test_format(
     rpass.set_bind_group(0, Some(&bind_group), &[]);
     rpass.dispatch_workgroups(size.width, size.height, 1);
     drop(rpass);
-    ctx.queue.submit(Some(encoder.finish()));
 
-    let read_buffer = ctx.device.create_buffer(&wgpu::BufferDescriptor {
-        label: None,
-        size: (size.height * size.width * size.depth_or_array_layers * pixel_bytes) as u64,
-        usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
-        mapped_at_creation: false,
-    });
+    let readback_buffers = ReadbackBuffers::new(&ctx.device, &tex);
+    readback_buffers.copy_from(&ctx.device, &mut encoder, &tex);
 
-    let mut encoder = ctx
-        .device
-        .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
+    ctx.queue.submit([encoder.finish()]);
 
-    encoder.copy_texture_to_buffer(
-        wgpu::TexelCopyTextureInfo {
-            texture: &tex,
-            mip_level: 0,
-            origin: wgpu::Origin3d::ZERO,
-            aspect: wgpu::TextureAspect::All,
-        },
-        wgpu::TexelCopyBufferInfo {
-            buffer: &read_buffer,
-            layout: wgpu::TexelCopyBufferLayout {
-                offset: 0,
-                bytes_per_row: Some(size.width * pixel_bytes),
-                rows_per_image: Some(size.height),
-            },
-        },
-        size,
-    );
+    let data: Vec<u32> = (0..size.width as usize * size.height as usize)
+        .map(|i| {
+            let x = i as u32 % size.width;
+            let y = i as u32 / size.width;
+            u32::min(x, y)
+        })
+        .collect();
 
-    ctx.queue.submit(Some(encoder.finish()));
-
-    let slice = read_buffer.slice(..);
-    slice.map_async(wgpu::MapMode::Read, |_| ());
-    ctx.async_poll(wgpu::Maintain::wait())
-        .await
-        .panic_on_timeout();
-    let data: Vec<u8> = slice.get_mapped_range().to_vec();
-
-    assert_eq!(data.len() as u32, size.width * size.height * pixel_bytes);
-    for (i, long) in data.chunks(pixel_bytes as usize).enumerate() {
-        let x = (i as u32 % size.width) as u8;
-        let y = (i as u32 / size.width) as u8;
-        assert_eq!(long[0], u8::min(x, y), "{i}");
-        assert_eq!(
-            long[1..pixel_bytes as usize],
-            [0].repeat(pixel_bytes as usize - 1)
-        );
-    }
+    readback_buffers
+        .assert_buffer_contents(&ctx, bytemuck::cast_slice(data.as_slice()))
+        .await;
 }

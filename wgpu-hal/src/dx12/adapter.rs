@@ -319,7 +319,8 @@ impl super::Adapter {
             | wgt::Features::RG11B10UFLOAT_RENDERABLE
             | wgt::Features::DUAL_SOURCE_BLENDING
             | wgt::Features::TEXTURE_FORMAT_NV12
-            | wgt::Features::FLOAT32_FILTERABLE;
+            | wgt::Features::FLOAT32_FILTERABLE
+            | wgt::Features::TEXTURE_ATOMIC;
 
         //TODO: in order to expose this, we need to run a compute shader
         // that extract the necessary statistics out of the D3D12 result.
@@ -380,11 +381,6 @@ impl super::Adapter {
             shader_model >= naga::back::hlsl::ShaderModel::V6_0
                 && hr.is_ok()
                 && features1.Int64ShaderOps.as_bool(),
-        );
-
-        features.set(
-            wgt::Features::TEXTURE_ATOMIC,
-            shader_model >= naga::back::hlsl::ShaderModel::V5_0,
         );
 
         features.set(
