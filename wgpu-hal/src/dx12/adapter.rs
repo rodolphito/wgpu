@@ -345,6 +345,12 @@ impl super::Adapter {
             shader_model >= naga::back::hlsl::ShaderModel::V5_1,
         );
 
+        // See note below the table https://learn.microsoft.com/en-us/windows/win32/direct3d12/hardware-support
+        features.set(
+            wgt::Features::PARTIALLY_BOUND_BINDING_ARRAY,
+            options.ResourceBindingTier.0 >= Direct3D12::D3D12_RESOURCE_BINDING_TIER_3.0,
+        );
+
         let bgra8unorm_storage_supported = {
             let mut bgra8unorm_info = Direct3D12::D3D12_FEATURE_DATA_FORMAT_SUPPORT {
                 Format: Dxgi::Common::DXGI_FORMAT_B8G8R8A8_UNORM,
@@ -420,9 +426,8 @@ impl super::Adapter {
 
         // See https://learn.microsoft.com/en-us/windows/win32/direct3d12/hardware-feature-levels#feature-level-support
         let max_color_attachments = 8;
-        // TODO: determine this programmatically if possible.
-        // https://github.com/gpuweb/gpuweb/issues/2965#issuecomment-1361315447
-        let max_color_attachment_bytes_per_sample = 64;
+        let max_color_attachment_bytes_per_sample =
+            max_color_attachments * wgt::TextureFormat::MAX_TARGET_PIXEL_BYTE_COST;
 
         Some(crate::ExposedAdapter {
             adapter: super::Adapter {

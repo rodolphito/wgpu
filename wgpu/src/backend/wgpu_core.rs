@@ -3,7 +3,7 @@ use crate::{
     dispatch::{self, BufferMappedRangeInterface, InterfaceTypes},
     BindingResource, BufferBinding, BufferDescriptor, CompilationInfo, CompilationMessage,
     CompilationMessageType, ErrorSource, Features, Label, LoadOp, MapMode, Operations,
-    ShaderSource, StoreOp, SurfaceTargetUnsafe, TextureDescriptor,
+    ShaderSource, SurfaceTargetUnsafe, TextureDescriptor,
 };
 
 use arrayvec::ArrayVec;
@@ -397,39 +397,23 @@ fn map_texture_tagged_copy_view(
     }
 }
 
-fn map_store_op(op: StoreOp) -> wgc::command::StoreOp {
-    match op {
-        StoreOp::Store => wgc::command::StoreOp::Store,
-        StoreOp::Discard => wgc::command::StoreOp::Discard,
+fn map_load_op<V: Copy>(load: &LoadOp<V>) -> LoadOp<Option<V>> {
+    match load {
+        LoadOp::Clear(clear_value) => LoadOp::Clear(Some(*clear_value)),
+        LoadOp::Load => LoadOp::Load,
     }
 }
 
-fn map_pass_channel<V: Copy + Default>(
-    ops: Option<&Operations<V>>,
-) -> wgc::command::PassChannel<V> {
+fn map_pass_channel<V: Copy>(ops: Option<&Operations<V>>) -> wgc::command::PassChannel<Option<V>> {
     match ops {
-        Some(&Operations {
-            load: LoadOp::Clear(clear_value),
-            store,
-        }) => wgc::command::PassChannel {
-            load_op: wgc::command::LoadOp::Clear,
-            store_op: map_store_op(store),
-            clear_value,
-            read_only: false,
-        },
-        Some(&Operations {
-            load: LoadOp::Load,
-            store,
-        }) => wgc::command::PassChannel {
-            load_op: wgc::command::LoadOp::Load,
-            store_op: map_store_op(store),
-            clear_value: V::default(),
+        Some(&Operations { load, store }) => wgc::command::PassChannel {
+            load_op: Some(map_load_op(&load)),
+            store_op: Some(store),
             read_only: false,
         },
         None => wgc::command::PassChannel {
-            load_op: wgc::command::LoadOp::Load,
-            store_op: wgc::command::StoreOp::Store,
-            clear_value: V::default(),
+            load_op: None,
+            store_op: None,
             read_only: true,
         },
     }
@@ -783,7 +767,7 @@ impl InterfaceTypes for ContextWgpuCore {
 }
 
 impl dispatch::InstanceInterface for ContextWgpuCore {
-    fn new(desc: wgt::InstanceDescriptor) -> Self
+    fn new(desc: &wgt::InstanceDescriptor) -> Self
     where
         Self: Sized,
     {
@@ -826,12 +810,13 @@ impl dispatch::InstanceInterface for ContextWgpuCore {
             },
         }?;
 
-        Ok(dispatch::DispatchSurface::Core(CoreSurface {
+        Ok(CoreSurface {
             context: self.clone(),
             id,
             configured_device: Mutex::default(),
             error_sink: Mutex::default(),
-        }))
+        }
+        .into())
     }
 
     fn request_adapter(
@@ -971,11 +956,11 @@ impl dispatch::DeviceInterface for CoreDevice {
     fn create_shader_module(
         &self,
         desc: crate::ShaderModuleDescriptor<'_>,
-        shader_bound_checks: wgt::ShaderBoundChecks,
+        shader_bound_checks: wgt::ShaderRuntimeChecks,
     ) -> dispatch::DispatchShaderModule {
         let descriptor = wgc::pipeline::ShaderModuleDescriptor {
             label: desc.label.map(Borrowed),
-            shader_bound_checks,
+            runtime_checks: shader_bound_checks,
         };
         let source = match desc.source {
             #[cfg(feature = "spirv")]
@@ -1036,7 +1021,7 @@ impl dispatch::DeviceInterface for CoreDevice {
             label: desc.label.map(Borrowed),
             // Doesn't matter the value since spirv shaders aren't mutated to include
             // runtime checks
-            shader_bound_checks: unsafe { wgt::ShaderBoundChecks::unchecked() },
+            runtime_checks: wgt::ShaderRuntimeChecks::unchecked(),
         };
         let (id, error) = unsafe {
             self.context.0.device_create_shader_module_spirv(
@@ -1170,7 +1155,7 @@ impl dispatch::DeviceInterface for CoreDevice {
                     }
                     BindingResource::AccelerationStructure(acceleration_structure) => {
                         bm::BindingResource::AccelerationStructure(
-                            acceleration_structure.inner.as_core().id,
+                            acceleration_structure.shared.inner.as_core().id,
                         )
                     }
                 },
@@ -1971,6 +1956,7 @@ impl dispatch::TextureInterface for CoreTexture {
             label: desc.label.map(Borrowed),
             format: desc.format,
             dimension: desc.dimension,
+            usage: desc.usage,
             range: wgt::ImageSubresourceRange {
                 aspect: desc.aspect,
                 base_mip_level: desc.base_mip_level,
@@ -2253,7 +2239,8 @@ impl dispatch::CommandEncoderInterface for CoreCommandEncoder {
                     .map(|at| wgc::command::RenderPassColorAttachment {
                         view: at.view.inner.as_core().id,
                         resolve_target: at.resolve_target.map(|view| view.inner.as_core().id),
-                        channel: map_pass_channel(Some(&at.ops)),
+                        load_op: at.ops.load,
+                        store_op: at.ops.store,
                     })
             })
             .collect::<Vec<_>>();
@@ -2465,14 +2452,14 @@ impl dispatch::CommandEncoderInterface for CoreCommandEncoder {
                 }
             };
             wgc::ray_tracing::BlasBuildEntry {
-                blas_id: e.blas.shared.inner.as_core().id,
+                blas_id: e.blas.inner.as_core().id,
                 geometries,
             }
         });
 
         let tlas = tlas.into_iter().map(|e: &crate::TlasBuildEntry<'a>| {
             wgc::ray_tracing::TlasBuildEntry {
-                tlas_id: e.tlas.inner.as_core().id,
+                tlas_id: e.tlas.shared.inner.as_core().id,
                 instance_buffer_id: e.instance_buffer.inner.as_core().id,
                 instance_count: e.instance_count,
             }
@@ -2515,7 +2502,7 @@ impl dispatch::CommandEncoderInterface for CoreCommandEncoder {
                 }
             };
             wgc::ray_tracing::BlasBuildEntry {
-                blas_id: e.blas.shared.inner.as_core().id,
+                blas_id: e.blas.inner.as_core().id,
                 geometries,
             }
         });
@@ -2528,14 +2515,14 @@ impl dispatch::CommandEncoderInterface for CoreCommandEncoder {
                     instance
                         .as_ref()
                         .map(|instance| wgc::ray_tracing::TlasInstance {
-                            blas_id: instance.blas.inner.as_core().id,
+                            blas_id: instance.blas.as_core().id,
                             transform: &instance.transform,
                             custom_index: instance.custom_index,
                             mask: instance.mask,
                         })
                 });
             wgc::ray_tracing::TlasPackage {
-                tlas_id: e.tlas.inner.as_core().id,
+                tlas_id: e.tlas.shared.inner.as_core().id,
                 instances: Box::new(instances),
                 lowest_unmodified: e.lowest_unmodified,
             }

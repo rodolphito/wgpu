@@ -290,8 +290,8 @@ impl Global {
         let scratch_buffer_barrier = hal::BufferBarrier::<dyn hal::DynBuffer> {
             buffer: scratch_buffer.raw(),
             usage: hal::StateTransition {
-                from: hal::BufferUses::ACCELERATION_STRUCTURE_SCRATCH,
-                to: hal::BufferUses::ACCELERATION_STRUCTURE_SCRATCH,
+                from: BufferUses::ACCELERATION_STRUCTURE_SCRATCH,
+                to: BufferUses::ACCELERATION_STRUCTURE_SCRATCH,
             },
         };
 
@@ -322,7 +322,7 @@ impl Global {
         let blas_present = !blas_storage.is_empty();
         let tlas_present = !tlas_storage.is_empty();
 
-        let cmd_buf_raw = cmd_buf_data.encoder.open(device)?;
+        let cmd_buf_raw = cmd_buf_data.encoder.open()?;
 
         let mut descriptors = Vec::new();
 
@@ -674,7 +674,7 @@ impl Global {
         let blas_present = !blas_storage.is_empty();
         let tlas_present = !tlas_storage.is_empty();
 
-        let cmd_buf_raw = cmd_buf_data.encoder.open(device)?;
+        let cmd_buf_raw = cmd_buf_data.encoder.open()?;
 
         let mut descriptors = Vec::new();
 
@@ -1169,24 +1169,27 @@ fn iter_buffers<'a, 'b>(
             {
                 input_barriers.push(barrier);
             }
-            if mesh.transform_buffer_offset.unwrap() % wgt::TRANSFORM_BUFFER_ALIGNMENT != 0 {
+
+            let offset = mesh.transform_buffer_offset.unwrap();
+
+            if offset % wgt::TRANSFORM_BUFFER_ALIGNMENT != 0 {
                 return Err(
                     BuildAccelerationStructureError::UnalignedTransformBufferOffset(
                         transform_buffer.error_ident(),
                     ),
                 );
             }
-            if transform_buffer.size < 48 + mesh.transform_buffer_offset.unwrap() {
+            if transform_buffer.size < 48 + offset {
                 return Err(BuildAccelerationStructureError::InsufficientBufferSize(
                     transform_buffer.error_ident(),
                     transform_buffer.size,
-                    48 + mesh.transform_buffer_offset.unwrap(),
+                    48 + offset,
                 ));
             }
             cmd_buf_data.buffer_memory_init_actions.extend(
                 transform_buffer.initialization_status.read().create_action(
                     transform_buffer,
-                    mesh.transform_buffer_offset.unwrap()..(mesh.index_buffer_offset.unwrap() + 48),
+                    offset..(offset + 48),
                     MemoryInitKind::NeedsInitializedMemory,
                 ),
             );

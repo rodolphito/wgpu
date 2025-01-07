@@ -777,6 +777,11 @@ impl PhysicalDeviceFeatures {
             caps.supports_extension(google::display_timing::NAME),
         );
 
+        features.set(
+            F::VULKAN_EXTERNAL_MEMORY_WIN32,
+            caps.supports_extension(khr::external_memory_win32::NAME),
+        );
+
         (features, dl_flags)
     }
 
@@ -1048,8 +1053,13 @@ impl PhysicalDeviceProperties {
 
         // TODO: programmatically determine this, if possible. It's unclear whether we can
         // as of https://github.com/gpuweb/gpuweb/issues/2965#issuecomment-1361315447.
-        // We could increase the limit when we aren't on a tiled GPU.
-        let max_color_attachment_bytes_per_sample = 32;
+        //
+        // In theory some tilers may not support this much. We can't tell however, and
+        // the driver will throw a DEVICE_REMOVED if it goes too high in usage. This is fine.
+        //
+        // 16 bytes per sample is the maximum size for a color attachment.
+        let max_color_attachment_bytes_per_sample =
+            limits.max_color_attachments * wgt::TextureFormat::MAX_TARGET_PIXEL_BYTE_COST;
 
         wgt::Limits {
             max_texture_dimension_1d: limits.max_image_dimension1_d,
@@ -1499,7 +1509,7 @@ impl super::Instance {
                 Some(features) => features.imageless_framebuffer == vk::TRUE,
                 None => phd_features
                     .imageless_framebuffer
-                    .map_or(false, |ext| ext.imageless_framebuffer != 0),
+                    .is_some_and(|ext| ext.imageless_framebuffer != 0),
             },
             image_view_usage: phd_capabilities.device_api_version >= vk::API_VERSION_1_1
                 || phd_capabilities.supports_extension(khr::maintenance2::NAME),
@@ -1507,7 +1517,7 @@ impl super::Instance {
                 Some(features) => features.timeline_semaphore == vk::TRUE,
                 None => phd_features
                     .timeline_semaphore
-                    .map_or(false, |ext| ext.timeline_semaphore != 0),
+                    .is_some_and(|ext| ext.timeline_semaphore != 0),
             },
             texture_d24: supports_format(
                 &self.shared.raw,
@@ -1538,7 +1548,7 @@ impl super::Instance {
                 Some(ref f) => f.robust_image_access2 != 0,
                 None => phd_features
                     .image_robustness
-                    .map_or(false, |ext| ext.robust_image_access != 0),
+                    .is_some_and(|ext| ext.robust_image_access != 0),
             },
             robust_buffer_access2: phd_features
                 .robustness2
@@ -1552,14 +1562,13 @@ impl super::Instance {
                 .unwrap_or_default(),
             zero_initialize_workgroup_memory: phd_features
                 .zero_initialize_workgroup_memory
-                .map_or(false, |ext| {
-                    ext.shader_zero_initialize_workgroup_memory == vk::TRUE
-                }),
+                .is_some_and(|ext| ext.shader_zero_initialize_workgroup_memory == vk::TRUE),
             image_format_list: phd_capabilities.device_api_version >= vk::API_VERSION_1_2
                 || phd_capabilities.supports_extension(khr::image_format_list::NAME),
-            #[cfg(windows)]
-            external_memory_win32: phd_capabilities
-                .supports_extension(khr::external_memory_win32::NAME),
+            maximum_samplers: phd_capabilities
+                .properties
+                .limits
+                .max_sampler_allocation_count,
         };
         let capabilities = crate::Capabilities {
             limits: phd_capabilities.to_wgpu_limits(),
@@ -1908,6 +1917,9 @@ impl super::Adapter {
             workarounds: self.workarounds,
             render_passes: Mutex::new(Default::default()),
             framebuffers: Mutex::new(Default::default()),
+            sampler_cache: Mutex::new(super::sampler::SamplerCache::new(
+                self.private_caps.maximum_samplers,
+            )),
             memory_allocations_counter: Default::default(),
         });
 
