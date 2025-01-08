@@ -2,7 +2,7 @@
 
 use wgpu::ShaderModuleDescriptor;
 use wgpu_test::{
-    gpu_test, image::ReadbackBuffers, GpuTestConfiguration, TestParameters, TestingContext,
+    fail, gpu_test, image::ReadbackBuffers, GpuTestConfiguration, TestParameters, TestingContext,
 };
 
 #[gpu_test]
@@ -131,3 +131,59 @@ async fn test_format(
 
     readback_buffers.assert_buffer_contents(&ctx, &data).await;
 }
+
+#[gpu_test]
+static IMAGE_ATOMICS_NOT_ENABLED: GpuTestConfiguration = GpuTestConfiguration::new()
+    .parameters(TestParameters::default())
+    .run_sync(|ctx| {
+        let size = wgpu::Extent3d {
+            width: 256,
+            height: 256,
+            depth_or_array_layers: 1,
+        };
+
+        fail(
+            &ctx.device,
+            || {
+                let _ = ctx.device.create_texture(&wgpu::TextureDescriptor {
+                    label: None,
+                    dimension: wgpu::TextureDimension::D2,
+                    size,
+                    format: wgpu::TextureFormat::R32Uint,
+                    usage: wgpu::TextureUsages::STORAGE_ATOMIC,
+                    mip_level_count: 1,
+                    sample_count: 1,
+                    view_formats: &[],
+                });
+            },
+            Some("Texture usages TextureUsages(STORAGE_ATOMIC) are not allowed on a texture of type R32Uint"),
+        );
+    });
+
+#[gpu_test]
+static IMAGE_ATOMICS_NOT_SUPPORTED: GpuTestConfiguration = GpuTestConfiguration::new()
+    .parameters(TestParameters::default().features(wgpu::Features::TEXTURE_ATOMIC))
+    .run_sync(|ctx| {
+        let size = wgpu::Extent3d {
+            width: 256,
+            height: 256,
+            depth_or_array_layers: 1,
+        };
+
+        fail(
+            &ctx.device,
+            || {
+                let _ = ctx.device.create_texture(&wgpu::TextureDescriptor {
+                    label: None,
+                    dimension: wgpu::TextureDimension::D2,
+                    size,
+                    format: wgpu::TextureFormat::R8Uint,
+                    usage: wgpu::TextureUsages::STORAGE_ATOMIC,
+                    mip_level_count: 1,
+                    sample_count: 1,
+                    view_formats: &[],
+                });
+            },
+            Some("Texture usages TextureUsages(STORAGE_ATOMIC) are not allowed on a texture of type R8Uint"),
+        );
+    });
