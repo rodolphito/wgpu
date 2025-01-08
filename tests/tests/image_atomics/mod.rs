@@ -120,15 +120,14 @@ async fn test_format(
 
     ctx.queue.submit([encoder.finish()]);
 
-    let data: Vec<u32> = (0..size.width as usize * size.height as usize)
-        .map(|i| {
+    let padding = [0].repeat(pixel_bytes as usize - size_of::<u32>());
+    let data: Vec<u8> = (0..size.width as usize * size.height as usize)
+        .flat_map(|i| {
             let x = i as u32 % size.width;
             let y = i as u32 / size.width;
-            u32::min(x, y)
+            [bytemuck::bytes_of(&u32::min(x, y)), &padding].concat()
         })
         .collect();
 
-    readback_buffers
-        .assert_buffer_contents(&ctx, bytemuck::cast_slice(data.as_slice()))
-        .await;
+    readback_buffers.assert_buffer_contents(&ctx, &data).await;
 }

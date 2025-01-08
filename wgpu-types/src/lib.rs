@@ -3444,7 +3444,11 @@ impl TextureFormat {
         let storage = basic | TextureUsages::STORAGE_BINDING;
         let binding = TextureUsages::TEXTURE_BINDING;
         let all_flags = attachment | storage | binding;
-        let atomic = all_flags | TextureUsages::STORAGE_ATOMIC;
+        let atomic = if device_features.contains(Features::TEXTURE_ATOMIC) {
+            all_flags | TextureUsages::STORAGE_ATOMIC
+        } else {
+            all_flags
+        };
         let rg11b10f = if device_features.contains(Features::RG11B10UFLOAT_RENDERABLE) {
             attachment
         } else {
