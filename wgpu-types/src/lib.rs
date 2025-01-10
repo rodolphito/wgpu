@@ -6894,7 +6894,7 @@ pub enum StorageTextureAccess {
     /// Example WGSL syntax:
     /// ```rust,ignore
     /// @group(0) @binding(0)
-    /// var my_storage_image: texture_storage_2d<r32float, read_write>;
+    /// var my_storage_image: texture_storage_2d<r32uint, atomic>;
     /// ```
     Atomic,
 }
