@@ -2,7 +2,8 @@ use super::{BackendResult, Error, Version, Writer};
 use crate::{
     back::glsl::{Options, WriterFlags},
     AddressSpace, Binding, Expression, Handle, ImageClass, ImageDimension, Interpolation,
-    SampleLevel, Sampling, Scalar, ScalarKind, ShaderStage, StorageFormat, Type, TypeInner,
+    SampleLevel, Sampling, Scalar, ScalarKind, ShaderStage, StorageAccess, StorageFormat, Type,
+    TypeInner,
 };
 use std::fmt::Write;
 
@@ -52,6 +53,8 @@ bitflags::bitflags! {
         const TEXTURE_SHADOW_LOD = 1 << 23;
         /// Subgroup operations
         const SUBGROUP_OPERATIONS = 1 << 24;
+        /// Image atomics
+        const TEXTURE_ATOMICS = 1 << 25;
     }
 }
 
@@ -120,6 +123,7 @@ impl FeaturesManager {
         check_feature!(DYNAMIC_ARRAY_SIZE, 430, 310);
         check_feature!(DUAL_SOURCE_BLENDING, 330, 300 /* with extension */);
         check_feature!(SUBGROUP_OPERATIONS, 430, 310);
+        check_feature!(TEXTURE_ATOMICS, 440, 420);
         match version {
             Version::Embedded { is_webgl: true, .. } => check_feature!(MULTI_VIEW, 140, 300),
             _ => check_feature!(MULTI_VIEW, 140, 310),
@@ -278,6 +282,10 @@ impl FeaturesManager {
             )?;
         }
 
+        if self.0.contains(Features::TEXTURE_ATOMICS) {
+            writeln!(out, "#extension GL_OES_shader_image_atomic : require")?;
+        }
+
         Ok(())
     }
 }
@@ -382,31 +390,36 @@ impl<W> Writer<'_, W> {
                                 self.features.request(Features::MULTISAMPLED_TEXTURE_ARRAYS);
                             }
                         }
-                        ImageClass::Storage { format, .. } => match format {
-                            StorageFormat::R8Unorm
-                            | StorageFormat::R8Snorm
-                            | StorageFormat::R8Uint
-                            | StorageFormat::R8Sint
-                            | StorageFormat::R16Uint
-                            | StorageFormat::R16Sint
-                            | StorageFormat::R16Float
-                            | StorageFormat::Rg8Unorm
-                            | StorageFormat::Rg8Snorm
-                            | StorageFormat::Rg8Uint
-                            | StorageFormat::Rg8Sint
-                            | StorageFormat::Rg16Uint
-                            | StorageFormat::Rg16Sint
-                            | StorageFormat::Rg16Float
-                            | StorageFormat::Rgb10a2Uint
-                            | StorageFormat::Rgb10a2Unorm
-                            | StorageFormat::Rg11b10Ufloat
-                            | StorageFormat::Rg32Uint
-                            | StorageFormat::Rg32Sint
-                            | StorageFormat::Rg32Float => {
-                                self.features.request(Features::FULL_IMAGE_FORMATS)
+                        ImageClass::Storage { format, access } => {
+                            if access.contains(StorageAccess::ATOMIC) {
+                                self.features.request(Features::TEXTURE_ATOMICS);
                             }
-                            _ => {}
-                        },
+                            match format {
+                                StorageFormat::R8Unorm
+                                | StorageFormat::R8Snorm
+                                | StorageFormat::R8Uint
+                                | StorageFormat::R8Sint
+                                | StorageFormat::R16Uint
+                                | StorageFormat::R16Sint
+                                | StorageFormat::R16Float
+                                | StorageFormat::Rg8Unorm
+                                | StorageFormat::Rg8Snorm
+                                | StorageFormat::Rg8Uint
+                                | StorageFormat::Rg8Sint
+                                | StorageFormat::Rg16Uint
+                                | StorageFormat::Rg16Sint
+                                | StorageFormat::Rg16Float
+                                | StorageFormat::Rgb10a2Uint
+                                | StorageFormat::Rgb10a2Unorm
+                                | StorageFormat::Rg11b10Ufloat
+                                | StorageFormat::Rg32Uint
+                                | StorageFormat::Rg32Sint
+                                | StorageFormat::Rg32Float => {
+                                    self.features.request(Features::FULL_IMAGE_FORMATS)
+                                }
+                                _ => {}
+                            }
+                        }
                         ImageClass::Sampled { multi: false, .. }
                         | ImageClass::Depth { multi: false } => {}
                     }
