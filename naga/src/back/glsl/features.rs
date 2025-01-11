@@ -2,8 +2,7 @@ use super::{BackendResult, Error, Version, Writer};
 use crate::{
     back::glsl::{Options, WriterFlags},
     AddressSpace, Binding, Expression, Handle, ImageClass, ImageDimension, Interpolation,
-    SampleLevel, Sampling, Scalar, ScalarKind, ShaderStage, StorageAccess, StorageFormat, Type,
-    TypeInner,
+    SampleLevel, Sampling, Scalar, ScalarKind, ShaderStage, StorageFormat, Type, TypeInner,
 };
 use std::fmt::Write;
 
@@ -391,7 +390,7 @@ impl<W> Writer<'_, W> {
                                 self.features.request(Features::MULTISAMPLED_TEXTURE_ARRAYS);
                             }
                         }
-                        ImageClass::Storage { format, access } => match format {
+                        ImageClass::Storage { format, .. } => match format {
                             StorageFormat::R8Unorm
                             | StorageFormat::R8Snorm
                             | StorageFormat::R8Uint
@@ -558,11 +557,11 @@ impl<W> Writer<'_, W> {
         for blocks in module
             .functions
             .iter()
-            .map(|(h, f)| &f.body)
+            .map(|(_, f)| &f.body)
             .chain(std::iter::once(&entry_point.function.body))
         {
             for (stmt, _) in blocks.span_iter() {
-                match stmt {
+                match *stmt {
                     crate::Statement::ImageAtomic { .. } => {
                         features.request(Features::TEXTURE_ATOMICS)
                     }
