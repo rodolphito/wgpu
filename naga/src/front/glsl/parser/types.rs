@@ -274,9 +274,19 @@ impl ParsingContext<'_> {
                     qualifiers.precision = Some((p, token.meta));
                 }
                 TokenValue::MemoryQualifier(access) => {
+                    let load_store = crate::StorageAccess::LOAD | crate::StorageAccess::STORE;
                     let storage_access = qualifiers
                         .storage_access
-                        .get_or_insert((crate::StorageAccess::all(), Span::default()));
+                        .get_or_insert((load_store, Span::default()));
+
+                    if !storage_access.0.contains(!access & load_store) {
+                        frontend.errors.push(Error {
+                            kind: ErrorKind::SemanticError(
+                                "The same memory qualifier can only be used once".into(),
+                            ),
+                            meta: token.meta,
+                        })
+                    }
 
                     storage_access.0 &= access;
                     storage_access.1.subsume(token.meta);
