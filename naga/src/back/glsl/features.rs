@@ -391,36 +391,31 @@ impl<W> Writer<'_, W> {
                                 self.features.request(Features::MULTISAMPLED_TEXTURE_ARRAYS);
                             }
                         }
-                        ImageClass::Storage { format, access } => {
-                            if access.contains(StorageAccess::ATOMIC) {
-                                self.features.request(Features::TEXTURE_ATOMICS);
+                        ImageClass::Storage { format, access } => match format {
+                            StorageFormat::R8Unorm
+                            | StorageFormat::R8Snorm
+                            | StorageFormat::R8Uint
+                            | StorageFormat::R8Sint
+                            | StorageFormat::R16Uint
+                            | StorageFormat::R16Sint
+                            | StorageFormat::R16Float
+                            | StorageFormat::Rg8Unorm
+                            | StorageFormat::Rg8Snorm
+                            | StorageFormat::Rg8Uint
+                            | StorageFormat::Rg8Sint
+                            | StorageFormat::Rg16Uint
+                            | StorageFormat::Rg16Sint
+                            | StorageFormat::Rg16Float
+                            | StorageFormat::Rgb10a2Uint
+                            | StorageFormat::Rgb10a2Unorm
+                            | StorageFormat::Rg11b10Ufloat
+                            | StorageFormat::Rg32Uint
+                            | StorageFormat::Rg32Sint
+                            | StorageFormat::Rg32Float => {
+                                self.features.request(Features::FULL_IMAGE_FORMATS)
                             }
-                            match format {
-                                StorageFormat::R8Unorm
-                                | StorageFormat::R8Snorm
-                                | StorageFormat::R8Uint
-                                | StorageFormat::R8Sint
-                                | StorageFormat::R16Uint
-                                | StorageFormat::R16Sint
-                                | StorageFormat::R16Float
-                                | StorageFormat::Rg8Unorm
-                                | StorageFormat::Rg8Snorm
-                                | StorageFormat::Rg8Uint
-                                | StorageFormat::Rg8Sint
-                                | StorageFormat::Rg16Uint
-                                | StorageFormat::Rg16Sint
-                                | StorageFormat::Rg16Float
-                                | StorageFormat::Rgb10a2Uint
-                                | StorageFormat::Rgb10a2Unorm
-                                | StorageFormat::Rg11b10Ufloat
-                                | StorageFormat::Rg32Uint
-                                | StorageFormat::Rg32Sint
-                                | StorageFormat::Rg32Float => {
-                                    self.features.request(Features::FULL_IMAGE_FORMATS)
-                                }
-                                _ => {}
-                            }
-                        }
+                            _ => {}
+                        },
                         ImageClass::Sampled { multi: false, .. }
                         | ImageClass::Depth { multi: false } => {}
                     }
@@ -557,6 +552,22 @@ impl<W> Writer<'_, W> {
                 }
                 _ => {}
             }
+            }
+        }
+
+        for blocks in module
+            .functions
+            .iter()
+            .map(|(h, f)| &f.body)
+            .chain(std::iter::once(&entry_point.function.body))
+        {
+            for (stmt, _) in blocks.span_iter() {
+                match stmt {
+                    crate::Statement::ImageAtomic { .. } => {
+                        features.request(Features::TEXTURE_ATOMICS)
+                    }
+                    _ => {}
+                }
             }
         }
 
