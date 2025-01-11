@@ -8,6 +8,7 @@ mod regression {
     mod issue_5553;
     mod issue_6317;
     mod issue_6467;
+    mod issue_6827;
 }
 
 mod bgra8unorm_storage;
@@ -48,6 +49,7 @@ mod shader;
 mod shader_primitive_index;
 mod shader_view_format;
 mod subgroup_operations;
+mod texture_blit;
 mod texture_bounds;
 mod texture_view_creation;
 mod transfer;
