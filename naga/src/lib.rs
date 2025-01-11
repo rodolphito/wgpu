@@ -2023,9 +2023,6 @@ pub enum Statement {
     ///
     /// Doing atomics on images with mipmaps is not supported, so there is no
     /// `level` operand.
-    ///
-    /// This statement is a barrier for any operations on the corresponding
-    /// [`Expression::GlobalVariable`] for this image.
     ImageAtomic {
         /// The image to perform an atomic operation on. This must have type
         /// [`Image`]. (This will necessarily be a [`GlobalVariable`] or

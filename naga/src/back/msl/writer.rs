@@ -344,9 +344,7 @@ impl TypedGlobalVariable<'_> {
         let (space, access, reference) = match var.space.to_msl_name() {
             Some(space) if self.reference => {
                 let access = if var.space.needs_access_qualifier()
-                    && !self
-                        .usage
-                        .intersects(valid::GlobalUse::WRITE | valid::GlobalUse::ATOMIC)
+                    && !self.usage.intersects(valid::GlobalUse::WRITE)
                 {
                     "const"
                 } else {

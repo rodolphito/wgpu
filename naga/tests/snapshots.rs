@@ -790,7 +790,7 @@ fn convert_wgsl() {
         ),
         (
             "atomicTexture",
-            Targets::SPIRV | Targets::METAL | Targets::HLSL | Targets::WGSL,
+            Targets::SPIRV | Targets::METAL | Targets::GLSL | Targets::HLSL | Targets::WGSL,
         ),
         (
             "atomicOps-float32",
