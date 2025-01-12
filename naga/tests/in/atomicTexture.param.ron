@@ -5,7 +5,7 @@
 		capabilities: [],
 	),
 	hlsl: (
-		shader_model: V5_0,
+		shader_model: V5_1,
 		binding_map: {},
 		fake_missing_bindings: true,
 		special_constants_binding: Some((space: 1, register: 0)),
