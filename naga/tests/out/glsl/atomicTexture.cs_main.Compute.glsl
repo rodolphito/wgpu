@@ -1,13 +1,11 @@
-#version 310 es
-
-precision highp float;
-precision highp int;
-
+#version 420 core
+#extension GL_ARB_compute_shader : require
+#extension GL_OES_shader_image_atomic : require
 layout(local_size_x = 2, local_size_y = 1, local_size_z = 1) in;
 
-layout(r32ui) uniform highp uimage2D _group_0_binding_0_cs;
+layout(r32ui) uniform uimage2D _group_0_binding_0_cs;
 
-layout(r32i) uniform highp iimage2D _group_0_binding_1_cs;
+layout(r32i) uniform iimage2D _group_0_binding_1_cs;
 
 
 void main() {
